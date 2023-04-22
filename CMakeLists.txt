@@ -7,5 +7,5 @@ set(PROJECT "cali")
 
 project(${PROJECT} Fortran)
 
-add_executable(${PROJECT} src/main.f90)
+add_executable(${PROJECT} src/cali.f90 src/main.f90)
 
