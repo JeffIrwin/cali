@@ -16,6 +16,11 @@ jobs:
 
     - uses: actions/checkout@v1
 
+    - if: matrix.os == 'macOS-latest'
+      run: |
+        brew install gcc
+        brew reinstall gcc
+
     - name: Build
       run: |
         ./build.sh
