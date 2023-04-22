@@ -26,5 +26,5 @@ jobs:
 
     - name: build and run
       run: |
-        ./run.sh
+        bash ./run.sh
 
