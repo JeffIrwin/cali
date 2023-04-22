@@ -1,9 +1,11 @@
 
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.24)
 
-set(PROJECT cali)
+#set(CMAKE_Fortran_COMPILER "gfortran")
 
-project(PROJECT Fortran)
+set(PROJECT "cali")
+
+project(${PROJECT} Fortran)
 
 add_executable(${PROJECT} src/main.f90)
 

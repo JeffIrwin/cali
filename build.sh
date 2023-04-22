@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#gfortran -o build/main src/main.f90
+# TODO: debug vs release arg
 
-cmake -S . -B build
+cmake -S . -B build -G "Unix Makefiles"
 cmake --build build
 
