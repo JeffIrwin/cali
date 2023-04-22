@@ -10,7 +10,7 @@ program main
 	character(len = 1024) :: buffer
 	character(len = :), allocatable :: argv
 
-	integer :: argc, io, ittf, i
+	integer :: argc, io
 
 	type(ttf_t) :: ttf
 

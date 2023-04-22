@@ -59,8 +59,6 @@ function read_u32(unit) result(u32)
 	integer(kind = 4) :: i32
 	integer(kind = 8) :: i64
 
-	u32 = 0
-
 	read(unit) i32
 	i64 = i32
 	!print *, 'i64 = ', i64
@@ -82,8 +80,6 @@ function read_u16(unit) result(u16)
 	integer(kind = 2) :: i16
 	integer(kind = 8) :: i64
 
-	u16 = 0
-
 	read(unit) i16
 	i64 = i16
 	if (i64 < 0) i64 = i64 + huge(i16)
@@ -101,24 +97,21 @@ function read_ttf(filename) result(ttf)
 
 	!********
 
-	character(len = 1024) :: buffer
-	character(len = :), allocatable :: argv
+	integer :: io, iu
+	integer(kind = 8) :: i
 
-	integer :: argc, io, ittf, i
-
-	open(newunit = ittf, file = filename, action = 'read', iostat = io, &
+	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
 	if (io /= EXIT_SUCCESS) then
 		write(*,*) 'Error: cannot open file "', filename, '"'
 		call exit(EXIT_FAILURE)
 	end if
 
-	! TODO: save in offset-tables struct
-	ttf%scalar_type  = read_u32(ittf)
-	ttf%num_tables   = read_u16(ittf)
-	ttf%search_range = read_u16(ittf)
-	ttf%entry_select = read_u16(ittf)
-	ttf%range_shift  = read_u16(ittf)
+	ttf%scalar_type  = read_u32(iu)
+	ttf%num_tables   = read_u16(iu)
+	ttf%search_range = read_u16(iu)
+	ttf%entry_select = read_u16(iu)
+	ttf%range_shift  = read_u16(iu)
 
 	print *, 'scalar_type = ', ttf%scalar_type
 	print *, 'num_tables  = ', ttf%num_tables
@@ -127,16 +120,16 @@ function read_ttf(filename) result(ttf)
 
 	do i = 1, ttf%num_tables
 
-		ttf%tables(i)%tag      = read_str(ittf, 4)
-		ttf%tables(i)%checksum = read_u32(ittf)
-		ttf%tables(i)%offset   = read_u32(ittf)
-		ttf%tables(i)%length   = read_u32(ittf)
+		ttf%tables(i)%tag      = read_str(iu, 4)
+		ttf%tables(i)%checksum = read_u32(iu)
+		ttf%tables(i)%offset   = read_u32(iu)
+		ttf%tables(i)%length   = read_u32(iu)
 
 		print *, 'tag = ', ttf%tables(i)%tag
 
 	end do
 
-	close(ittf)
+	close(iu)
 
 end function read_ttf
 
