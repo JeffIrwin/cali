@@ -26,9 +26,8 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         run: |
-          echo "hello from main yml"
-          chmod +x ./build.sh
-          echo "building ..."
-          ./build.sh
-          echo "done"
+          #chmod +x ./build.sh
+          #./build.sh
+          chmod +x ./run.sh
+          ./run.sh
 
