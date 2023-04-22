@@ -3,6 +3,8 @@
 
 module cali_m
 
+	implicit none
+
 	integer :: EXIT_SUCCESS = 0, EXIT_FAILURE = -1
 
 	!********
@@ -88,6 +90,55 @@ function read_u16(unit) result(u16)
 	u16 = i64
 
 end function read_u16
+
+!===============================================================================
+
+function read_ttf(filename) result(ttf)
+
+	character(len = *), intent(in) :: filename
+
+	type(ttf_t) :: ttf
+
+	!********
+
+	character(len = 1024) :: buffer
+	character(len = :), allocatable :: argv
+
+	integer :: argc, io, ittf, i
+
+	open(newunit = ittf, file = filename, action = 'read', iostat = io, &
+		access = 'stream', convert = 'big_endian')
+	if (io /= EXIT_SUCCESS) then
+		write(*,*) 'Error: cannot open file "', filename, '"'
+		call exit(EXIT_FAILURE)
+	end if
+
+	! TODO: save in offset-tables struct
+	ttf%scalar_type  = read_u32(ittf)
+	ttf%num_tables   = read_u16(ittf)
+	ttf%search_range = read_u16(ittf)
+	ttf%entry_select = read_u16(ittf)
+	ttf%range_shift  = read_u16(ittf)
+
+	print *, 'scalar_type = ', ttf%scalar_type
+	print *, 'num_tables  = ', ttf%num_tables
+
+	allocate(ttf%tables( ttf%num_tables ))
+
+	do i = 1, ttf%num_tables
+
+		ttf%tables(i)%tag      = read_str(ittf, 4)
+		ttf%tables(i)%checksum = read_u32(ittf)
+		ttf%tables(i)%offset   = read_u32(ittf)
+		ttf%tables(i)%length   = read_u32(ittf)
+
+		print *, 'tag = ', ttf%tables(i)%tag
+
+	end do
+
+	close(ittf)
+
+end function read_ttf
 
 !===============================================================================
 
