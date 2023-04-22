@@ -18,7 +18,6 @@ jobs:
 
     - if: matrix.os == 'macOS-latest'
       run: |
-        brew install gcc
         brew reinstall gcc
 
     - name: Build
