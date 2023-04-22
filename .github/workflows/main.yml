@@ -6,25 +6,25 @@ name: cali ci
 
 # Controls when the workflow will run
 on:
-	push:
-		branches: [ "*" ]
+  push:
+    branches: [ "*" ]
 
-	# Allows you to run this workflow manually from the Actions tab
-	workflow_dispatch:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
-	os_matrix:
-		strategy:
-			matrix:
-				os: [ubuntu-latest, macos-latest]
+  os_matrix:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
-	build:
-		runs-on: ${{ matrix.os }}
+  build:
+    runs-on: ${{ matrix.os }}
 
-		steps:
-			- uses: actions/checkout@v3
+    steps:
+      - uses: actions/checkout@v3
 
-			- name: build and run
-				run: |
-					./run.sh arg1 arg_two
+      - name: build and run
+        run: |
+          ./run.sh arg1 arg_two
 
