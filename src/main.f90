@@ -17,6 +17,7 @@ program main
 	write(*,*) 'cali 0.0.1'
 	write(*,*)
 
+	! TODO: move to parse_args fn
 	argc = command_argument_count()
 	print *, 'argc = ', argc
 	if (argc /= 1) then
@@ -38,6 +39,7 @@ program main
 
 	print *, 'num_tables  = ', ttf%num_tables
 	print *, 'tag 1       = ', ttf%tables(1)%tag
+	print *, 'glyf table  = ', ttf%get_table('glyf')
 
 	call exit(EXIT_SUCCESS)
 

@@ -25,6 +25,9 @@ module cali_m
 
 		type(ttf_table), allocatable :: tables(:)
 
+		contains
+			procedure :: get_table
+
 	end type ttf_t
 
 	!********
@@ -86,6 +89,26 @@ function read_u16(unit) result(u16)
 	u16 = i64
 
 end function read_u16
+
+!===============================================================================
+
+function get_table(ttf, tag) result(table_id)
+
+	! Lookup a ttf table id by its tag name
+
+	class(ttf_t), intent(in) :: ttf
+	character(len = *), intent(in) :: tag
+
+	integer(kind = 8) :: table_id
+
+	!********
+
+	do table_id = 1, ttf%num_tables
+		if (ttf%tables(table_id)%tag == tag) return
+	end do
+	table_id = -1
+
+end function get_table
 
 !===============================================================================
 
