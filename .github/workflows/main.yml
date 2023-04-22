@@ -11,24 +11,11 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest]
-		#os: [ubuntu-latest, windows-latest, macOS-latest]
-        #os: [ubuntu-latest]
 
     steps:
 
     - uses: actions/checkout@v1
 
-#    - if: matrix.os == 'ubuntu-latest'
-#      run: |
-#        sudo apt-get install gfortran
-#    - if: matrix.os == 'macOS-latest'
-#      run: |
-#        brew install gcc
-#        brew reinstall gcc
-#    #- name: Checkout submodules
-#    #  shell: bash
-#    #  run: |
-#    #    git submodule update --init --recursive || echo "ignoring submodule error"
     - name: Build
       run: |
         ./build.sh
