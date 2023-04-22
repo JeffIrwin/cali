@@ -1,30 +1,38 @@
 
-# This is a basic workflow from github's template to help you get started with
-# Actions
+name: CI
 
-name: cali ci
-
-# Controls when the workflow will run
-on:
-  push:
-    branches: [ "*" ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+on: [push]
 
 jobs:
-  os_matrix:
+  test:
+
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+		#os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest, macOS-latest]
+        #os: [ubuntu-latest]
 
-    build:
-      runs-on: ${{ matrix.os }}
+    steps:
 
-      steps:
-        - uses: actions/checkout@v3
+    - uses: actions/checkout@v1
 
-        - name: build and run
-          run: |
-            ./run.sh arg1 arg_two
+#    - if: matrix.os == 'ubuntu-latest'
+#      run: |
+#        sudo apt-get install gfortran
+#    - if: matrix.os == 'macOS-latest'
+#      run: |
+#        brew install gcc
+#        brew reinstall gcc
+#    #- name: Checkout submodules
+#    #  shell: bash
+#    #  run: |
+#    #    git submodule update --init --recursive || echo "ignoring submodule error"
+    - name: Build
+      run: |
+        ./build.sh
+    - name: Run
+      run: |
+        ./build/cali
 
