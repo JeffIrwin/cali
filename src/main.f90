@@ -5,8 +5,41 @@ module cali_m
 
 	integer :: EXIT_SUCCESS = 0, EXIT_FAILURE = -1
 
+	!********
+
+	type ttf_table
+		character(len = :), allocatable :: tag
+		integer(kind = 8) :: checksum, offset, length
+	end type ttf_table
+
+	!********
+
+	type ttf_t
+
+		integer(kind = 8) :: scalar_type
+
+		integer(kind = 8) :: num_tables, search_range, entry_select, &
+			range_shift
+
+		type(ttf_table), allocatable :: tables(:)
+
+	end type ttf_t
+
+	!********
 
 contains
+
+!===============================================================================
+
+function read_str(unit, str_len) result(str)
+
+	integer, intent(in) :: unit, str_len
+	character(len = :), allocatable :: str
+
+	allocate(character(len = str_len) :: str)
+	read(unit) str
+
+end function read_str
 
 !===============================================================================
 
@@ -68,14 +101,12 @@ program main
 
 	implicit none
 
-	character(len = 4) :: tag
 	character(len = 1024) :: buffer
 	character(len = :), allocatable :: argv
 
 	integer :: argc, io, ittf, i
 
-	integer(kind = 8) :: scalar_type, checksum, offset, length
-	integer(kind = 8) :: num_tables, search_range, entry_select, range_shift
+	type(ttf_t) :: ttf
 
 	write(*,*) 'cali 0.0.1'
 	write(*,*)
@@ -91,7 +122,7 @@ program main
 
 	call get_command_argument(1, buffer, status = io)
 	if (io /= EXIT_SUCCESS) then
-		write(*,*) 'Error: get cmd arg'
+		write(*,*) 'Error: cannot get cmd arg'
 		call exit(EXIT_FAILURE)
 	end if
 	argv = trim(buffer)
@@ -105,25 +136,26 @@ program main
 	end if
 
 	! TODO: save in offset-tables struct
-	scalar_type  = read_u32(ittf)
-	num_tables   = read_u16(ittf)
-	search_range = read_u16(ittf)
-	entry_select = read_u16(ittf)
-	range_shift  = read_u16(ittf)
+	ttf%scalar_type  = read_u32(ittf)
+	ttf%num_tables   = read_u16(ittf)
+	ttf%search_range = read_u16(ittf)
+	ttf%entry_select = read_u16(ittf)
+	ttf%range_shift  = read_u16(ittf)
 
-	print *, 'scalar_type = ', scalar_type
-	print *, 'num_tables  = ', num_tables
+	print *, 'scalar_type = ', ttf%scalar_type
+	print *, 'num_tables  = ', ttf%num_tables
 
-	do i = 1, num_tables
-		read(ittf) tag
-		print *, 'tag = ', tag
+	allocate(ttf%tables( ttf%num_tables ))
 
-		! TODO: save in array of table structs
-		checksum = read_u32(ittf)
-		offset   = read_u32(ittf)
-		length   = read_u32(ittf)
+	do i = 1, ttf%num_tables
 
-		!stop
+		ttf%tables(i)%tag      = read_str(ittf, 4)
+		ttf%tables(i)%checksum = read_u32(ittf)
+		ttf%tables(i)%offset   = read_u32(ittf)
+		ttf%tables(i)%length   = read_u32(ittf)
+
+		print *, 'tag = ', ttf%tables(i)%tag
+
 	end do
 
 	close(ittf)
