@@ -24,10 +24,7 @@ jobs:
       run: |
         brew reinstall gcc
 
-    - name: build
+    - name: build and run
       run: |
-        bash ./build.sh
-    - name: run
-      run: |
-        ./build/cali
+        ./run.sh
 
