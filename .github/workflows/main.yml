@@ -4,26 +4,26 @@ name: cali ci
 on: [push]
 
 jobs:
-	test:
+  test:
 
-		name: test on ${{ matrix.os }}
-		runs-on: ${{ matrix.os }}
-		strategy:
-			matrix:
-				os: [ubuntu-latest, macos-latest]
+    name: test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
-		steps:
+    steps:
 
-		- uses: actions/checkout@v1
+    - uses: actions/checkout@v1
 
-		- if: matrix.os == 'macos-latest'
-			run: |
-				brew reinstall gcc
+    - if: matrix.os == 'macos-latest'
+      run: |
+        brew reinstall gcc
 
-		- name: build
-			run: |
-				./build.sh
-		- name: run
-			run: |
-				./build/cali
+    - name: build
+      run: |
+        ./build.sh
+    - name: run
+      run: |
+        ./build/cali
 
