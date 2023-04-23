@@ -5,7 +5,10 @@ module cali_m
 
 	implicit none
 
-	integer :: EXIT_SUCCESS = 0, EXIT_FAILURE = -1
+	integer, parameter :: &
+		EXIT_SUCCESS = 0, &
+		EXIT_FAILURE = -1, &
+		SEEK_ABS = 0
 
 	!********
 
@@ -127,8 +130,7 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu
-	integer(kind = 8) :: i, j, old, sum, u32
-	integer, parameter :: SEEK_ABS = 0
+	integer(kind = 8) :: i
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -149,11 +151,14 @@ function read_ttf(filename) result(ttf)
 
 	write(*, '(a,i0)') ' Number of tables = ', ttf%num_tables
 
+	! Read offset tables which include the position and length of each table in
+	! the ttf file
 	allocate(ttf%tables( ttf%num_tables ))
-
 	do i = 1, ttf%num_tables
 		ttf%tables(i) = read_ttf_table(iu)
 	end do
+
+	! Read head table TODO
 
 	close(iu)
 	!print *, 'done read_ttf()'
@@ -171,9 +176,7 @@ function read_ttf_table(iu) result(table)
 
 	!********
 
-	integer :: io
-	integer(kind = 8) :: i, j, old, sum
-	integer, parameter :: SEEK_ABS = 0
+	integer(kind = 8) :: i, old, sum
 
 	table%tag      = read_str(iu, 4)
 	table%checksum = read_u32(iu)
@@ -200,7 +203,7 @@ function read_ttf_table(iu) result(table)
 	sum = 0
 
 	! Number of 4-byte words is ceiling(num_bytes / 4)
-	do j = 1, (table%length + 3) / 4
+	do i = 1, (table%length + 3) / 4
 		sum = sum + read_u32(iu)
 	end do
 	!print '(a,z0)', '  sum   = ', sum
