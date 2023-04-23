@@ -69,6 +69,8 @@ end function read_str
 
 function read_fixed(unit) result(fixed)
 
+	! TODO: error-handling for all IO fns?
+
 	integer, intent(in) :: unit
 
 	double precision :: fixed
@@ -187,13 +189,36 @@ function read_ttf(filename) result(ttf)
 
 	write(*,*) 'Reading file "', filename, '" ...'
 
+	! Verify head table checksum (whole file)
+
+	!return ! TODO: optionally skip verification, e.g. for corbeli?
+
+	inquire(file = filename, size = filesize)
+	!print *, 'filesize = ', filesize
+
+	sum = 0
+	do i = 1, (filesize + 3) / 4
+		sum = sum + read_u32(iu)
+	end do
+	sum = iand(sum, z'ffffffff')
+
+	if (sum /= int(z'b1b0afba', 8)) then
+		write(*,*) error//'bad checksum for head table'
+		call exit(EXIT_FAILURE)
+	end if
+	call fseek(iu, 0, SEEK_ABS)
+	!print *, 'verified head checksum'
+
 	ttf%scalar_type  = read_u32(iu)
 	ttf%num_tables   = read_u16(iu)
 	ttf%search_range = read_u16(iu)
 	ttf%entry_select = read_u16(iu)
 	ttf%range_shift  = read_u16(iu)
 
-	!print *, 'scalar_type = ', ttf%scalar_type
+	!print *, 'scalar_type  = ', ttf%scalar_type
+	!print *, 'search_range = ', ttf%search_range
+	!print *, 'entry_select = ', ttf%entry_select
+	!print *, 'range_shift  = ', ttf%range_shift
 
 	write(*, '(a,i0)') ' Number of tables = ', ttf%num_tables
 
@@ -259,23 +284,6 @@ function read_ttf(filename) result(ttf)
 	!print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
 	!print *, 'glyph_data_fmt = ', ttf%glyph_data_fmt
 
-	! Verify head table checksum (whole file)
-
-	inquire(file = filename, size = filesize)
-	!print *, 'filesize = ', filesize
-
-	call fseek(iu, 0, SEEK_ABS)
-	sum = 0
-	do i = 1, (filesize + 3) / 4
-		sum = sum + read_u32(iu)
-	end do
-	sum = iand(sum, z'ffffffff')
-
-	if (sum /= int(z'b1b0afba', 8)) then
-		write(*,*) error//'bad checksum for head table '
-		call exit(EXIT_FAILURE)
-	end if
-
 	close(iu)
 	!print *, 'done read_ttf()'
 	!print *, ''
@@ -312,6 +320,8 @@ function read_ttf_table(iu) result(table)
 
 	integer(kind = 8) :: i, old, sum
 
+	!print *, 'starting read_ttf_table()'
+
 	table%tag      = read_str(iu, 4)
 	table%checksum = read_u32(iu)
 	table%offset   = read_u32(iu)
@@ -320,6 +330,7 @@ function read_ttf_table(iu) result(table)
 	!print *, 'tag    = ', table%tag
 	!print *, 'offset = ', table%offset
 	!print *, 'length = ', table%length
+	!print '(a,z0)', ' csum   = ', table%checksum
 	!print '(a,z0)', 'length = ', table%length
 	!print *, 'offset + length = ', table%offset + table%length
 	!print '(a,z0)', ' offset + length = ', table%offset + table%length
@@ -327,6 +338,7 @@ function read_ttf_table(iu) result(table)
 
 	! TODO: handle checkSumAdjustment somewhere
 	if (table%tag == "head") return
+	!return ! TODO: optionally skip verification, e.g. for corbeli?
 
 	! Verify checksum
 	old = ftell(iu)
