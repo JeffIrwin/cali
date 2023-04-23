@@ -153,13 +153,12 @@ function read_ttf(filename) result(ttf)
 
 	do i = 1, ttf%num_tables
 
+		! TODO: refactor to read_table fn
+
 		ttf%tables(i)%tag      = read_str(iu, 4)
 		ttf%tables(i)%checksum = read_u32(iu)
 		ttf%tables(i)%offset   = read_u32(iu)
 		ttf%tables(i)%length   = read_u32(iu)
-
-		! TODO: calculate and check checksums.  Read checksum as i32 for
-		! convenience?  Might not matter
 
 		print *, 'tag    = ', ttf%tables(i)%tag
 		print *, 'offset = ', ttf%tables(i)%offset
@@ -168,6 +167,9 @@ function read_ttf(filename) result(ttf)
 		print *, 'offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
 		print '(a,z0)', ' offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
 		print *, ''
+
+		! TODO: handle checkSumAdjustment somewhere
+		if (ttf%tables(i)%tag == "head") cycle
 
 		! Verify checksum
 		old = ftell(iu)
