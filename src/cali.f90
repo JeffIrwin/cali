@@ -24,7 +24,9 @@ module cali_m
 		integer(kind = 8) :: scalar_type
 
 		integer(kind = 8) :: num_tables, search_range, entry_select, &
-			range_shift
+			range_shift, checksum_adj, magic_num, flags, units_per_em
+
+		double precision :: version, font_rev
 
 		type(ttf_table), allocatable :: tables(:)
 
@@ -48,6 +50,23 @@ function read_str(unit, str_len) result(str)
 	read(unit) str
 
 end function read_str
+
+!===============================================================================
+
+function read_fixed(unit) result(fixed)
+
+	integer, intent(in) :: unit
+
+	double precision :: fixed
+
+	!********
+
+	integer(kind = 4) :: i32
+
+	read(unit) i32
+	fixed = i32 * (2.d0 ** -16)
+
+end function read_fixed
 
 !===============================================================================
 
@@ -130,7 +149,7 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu
-	integer(kind = 8) :: i
+	integer(kind = 8) :: i, head
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -159,6 +178,28 @@ function read_ttf(filename) result(ttf)
 	end do
 
 	! Read head table TODO
+	head = ttf%get_table("head")
+	call fseek(iu, ttf%tables(head)%offset, SEEK_ABS)
+
+	ttf%version  = read_fixed(iu)
+	ttf%font_rev = read_fixed(iu)
+
+	print * ,'ttf%version  = ', ttf%version
+	print * ,'ttf%font_rev = ', ttf%font_rev
+
+    ttf%checksum_adj = read_u32(iu)
+    ttf%magic_num    = read_u32(iu)
+	!print '(a,z0)', ' magic_num = ', ttf%magic_num
+
+	if (ttf%magic_num /= z'5f0f3cf5') then
+		write(*,*) 'Error: bad magic number'
+		call exit(EXIT_FAILURE)
+	end if
+
+    ttf%flags        = read_u16(iu)
+    ttf%units_per_em = read_u16(iu)
+
+	print *, 'units_per_em = ', ttf%units_per_em
 
 	close(iu)
 	!print *, 'done read_ttf()'
@@ -214,7 +255,7 @@ function read_ttf_table(iu) result(table)
 
 	if (sum /= table%checksum) then
 		write(*,*) 'Error: bad checksum for table ', table%tag
-		call exit(-1)
+		call exit(EXIT_FAILURE)
 	end if
 
 	call fseek(iu, old, SEEK_ABS)
