@@ -1,25 +1,30 @@
 
 !===============================================================================
 
-program main
+module app_m
 
 	use cali_m
-
 	implicit none
+
+	type args_t
+		character(len = :), allocatable :: ttf_file
+	end type args_t
+
+contains
+
+function parse_args() result(args)
+
+	type(args_t) :: args
+
+	!********
 
 	character(len = 1024) :: buffer
 	character(len = :), allocatable :: argv
 
 	integer :: argc, io
 
-	type(ttf_t) :: ttf
-
-	write(*,*) 'cali 0.0.1'
-	write(*,*)
-
-	! TODO: move to parse_args fn
 	argc = command_argument_count()
-	print *, 'argc = ', argc
+	!print *, 'argc = ', argc
 	if (argc /= 1) then
 		write(*,*) 'Error: bad cmd args'
 		write(*,*) 'Usage:'
@@ -33,9 +38,32 @@ program main
 		call exit(EXIT_FAILURE)
 	end if
 	argv = trim(buffer)
-	print *, 'argv = ', argv
+	!print *, 'argv = ', argv
 
-	ttf = read_ttf(argv)
+	! Positional arg
+	args%ttf_file = argv
+
+end function parse_args
+
+end module app_m
+
+!===============================================================================
+
+program main
+
+	use app_m
+	use cali_m
+
+	implicit none
+
+	type(args_t) :: args
+	type(ttf_t)  :: ttf
+
+	write(*,*) 'cali 0.0.1'
+	write(*,*)
+
+	args = parse_args()
+	ttf  = read_ttf(args%ttf_file)
 
 	print *, 'num_tables  = ', ttf%num_tables
 	print *, 'tag 1       = ', ttf%tables(1)%tag
