@@ -26,7 +26,7 @@ function parse_args() result(args)
 	argc = command_argument_count()
 	!print *, 'argc = ', argc
 	if (argc /= 1) then
-		write(*,*) 'Error: bad cmd args'
+		write(*,*) error//'bad cmd args'
 		write(*,*) 'Usage:'
 		write(*,*) '	cali path/to/font.ttf'
 		call exit(EXIT_FAILURE)
@@ -34,7 +34,7 @@ function parse_args() result(args)
 
 	call get_command_argument(1, buffer, status = io)
 	if (io /= EXIT_SUCCESS) then
-		write(*,*) 'Error: cannot get cmd arg'
+		write(*,*) error//'cannot get cmd arg'
 		call exit(EXIT_FAILURE)
 	end if
 	argv = trim(buffer)
@@ -69,7 +69,7 @@ program main
 	!print *, 'tag 1       = ', ttf%tables(1)%tag
 	!print *, 'glyf table  = ', ttf%get_table('glyf')
 
-	write(*,*) 'Finished cali'
+	write(*,*) fg_bright_green//'Finished cali'//color_reset
 	write(*,*)
 	call exit(EXIT_SUCCESS)
 

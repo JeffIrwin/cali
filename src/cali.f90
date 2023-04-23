@@ -10,6 +10,17 @@ module cali_m
 		EXIT_FAILURE = -1, &
 		SEEK_ABS = 0
 
+	character, parameter :: &
+			esc             = char(27)
+
+	character(len = *), parameter :: &
+			fg_bold_bright_red = esc//'[91;1m', &
+			fg_bright_green    = esc//'[92m', &
+			color_reset        = esc//'[0m'
+
+	character(len = *), parameter :: &
+		error = fg_bold_bright_red//'Error'//color_reset//': '
+
 	!********
 
 	type ttf_table
@@ -170,7 +181,7 @@ function read_ttf(filename) result(ttf)
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
 	if (io /= EXIT_SUCCESS) then
-		write(*,*) 'Error: cannot open file "', filename, '"'
+		write(*,*) error//'cannot open file "', filename, '"'
 		call exit(EXIT_FAILURE)
 	end if
 
@@ -211,7 +222,7 @@ function read_ttf(filename) result(ttf)
 	!print '(a,z0)', ' magic_num = ', ttf%magic_num
 
 	if (ttf%magic_num /= int(z'5f0f3cf5')) then
-		write(*,*) 'Error: bad magic number'
+		write(*,*) error//'bad magic number'
 		call exit(EXIT_FAILURE)
 	end if
 
@@ -261,7 +272,7 @@ function read_ttf(filename) result(ttf)
 	sum = iand(sum, z'ffffffff')
 
 	if (sum /= int(z'b1b0afba', 8)) then
-		write(*,*) 'Error: bad checksum for head table '
+		write(*,*) error//'bad checksum for head table '
 		call exit(EXIT_FAILURE)
 	end if
 
@@ -336,7 +347,7 @@ function read_ttf_table(iu) result(table)
 	!print '(a,z0)', ' final csum   = ', table%checksum
 
 	if (sum /= table%checksum) then
-		write(*,*) 'Error: bad checksum for table ', table%tag
+		write(*,*) error//'bad checksum for table ', table%tag
 		call exit(EXIT_FAILURE)
 	end if
 
