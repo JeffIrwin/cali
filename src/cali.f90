@@ -178,7 +178,7 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu
-	integer(kind = 8) :: i, head
+	integer(kind = 8) :: i, head, sum, filesize
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -207,6 +207,9 @@ function read_ttf(filename) result(ttf)
 	end do
 
 	! Read head table. TODO: parameterize "head"
+	!
+	! Offsets are already saved, so we don't need to save old positions before
+	! fseek() now unlike in table checksum verification
 	head = ttf%get_table("head")
 	call fseek(iu, ttf%tables(head)%offset, SEEK_ABS)
 
@@ -257,6 +260,23 @@ function read_ttf(filename) result(ttf)
 	!print *, 'font_dir_hint  = ', ttf%font_dir_hint
 	!print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
 	!print *, 'glyph_data_fmt = ', ttf%glyph_data_fmt
+
+	! Verify head table checksum (whole file)
+
+	inquire(file = filename, size = filesize)
+	!print *, 'filesize = ', filesize
+
+	call fseek(iu, 0, SEEK_ABS)
+	sum = 0
+	do i = 1, (filesize + 3) / 4
+		sum = sum + read_u32(iu)
+	end do
+	sum = iand(sum, z'ffffffff')
+
+	if (sum /= int(z'b1b0afba', 8)) then
+		write(*,*) 'Error: bad checksum for head table '
+		call exit(EXIT_FAILURE)
+	end if
 
 	close(iu)
 	!print *, 'done read_ttf()'
