@@ -21,10 +21,13 @@ module cali_m
 
 	type ttf_t
 
-		integer(kind = 8) :: scalar_type
+		integer(kind = 8) :: scalar_type, num_tables, search_range, &
+			entry_select, range_shift, checksum_adj, magic_num, flags, &
+			units_per_em, xmin, ymin, xmax, ymax, mac_style, low_rec_ppem, &
+			font_dir_hint, index2loc_fmt, glyph_data_fmt
 
-		integer(kind = 8) :: num_tables, search_range, entry_select, &
-			range_shift, checksum_adj, magic_num, flags, units_per_em
+		! Dates in ttf long date time format (i64 seconds since 1904)
+		integer(kind = 8) :: created, modified
 
 		double precision :: version, font_rev
 
@@ -67,6 +70,30 @@ function read_fixed(unit) result(fixed)
 	fixed = i32 * (2.d0 ** -16)
 
 end function read_fixed
+
+!===============================================================================
+
+function read_i64(unit) result(i64)
+
+	integer, intent(in) :: unit
+
+	integer(kind = 8) :: i64
+
+	read(unit) i64
+
+end function read_i64
+
+!===============================================================================
+
+function read_i16(unit) result(i16)
+
+	integer, intent(in) :: unit
+
+	integer(kind = 2) :: i16
+
+	read(unit) i16
+
+end function read_i16
 
 !===============================================================================
 
@@ -201,13 +228,57 @@ function read_ttf(filename) result(ttf)
 
 	print *, 'units_per_em = ', ttf%units_per_em
 
-	! TODO: read created/modified date.  Need read_date() helper fn
+	ttf%created  = read_i64(iu)
+	ttf%modified = read_i64(iu)
+	print *, 'created   = ', ldt2str(ttf%created)
+	print *, 'modified  = ', ldt2str(ttf%modified)
+
+	! These values are Fword's, which are just i16's
+	ttf%xmin = read_i16(iu)
+	ttf%ymin = read_i16(iu)
+	ttf%xmax = read_i16(iu)
+	ttf%ymax = read_i16(iu)
+
+	print *, 'xmin = ', ttf%xmin
+	print *, 'ymin = ', ttf%ymin
+	print *, 'xmax = ', ttf%xmax
+	print *, 'ymax = ', ttf%ymax
+
+	ttf%mac_style      = read_u16(iu)
+	ttf%low_rec_ppem   = read_u16(iu)
+	ttf%font_dir_hint  = read_i16(iu)
+	ttf%index2loc_fmt  = read_i16(iu)
+	ttf%glyph_data_fmt = read_i16(iu)
+
+	!print *, 'mac_style      = ', ttf%mac_style
+	!print *, 'low_rec_ppem   = ', ttf%low_rec_ppem
+	!print *, 'font_dir_hint  = ', ttf%font_dir_hint
+	!print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
+	!print *, 'glyph_data_fmt = ', ttf%glyph_data_fmt
 
 	close(iu)
 	!print *, 'done read_ttf()'
 	!print *, ''
 
 end function read_ttf
+
+!===============================================================================
+
+function ldt2str(ldt) result(str)
+
+	! Format ttf long date time to string.  ldt is number of seconds since 1904
+
+	integer(kind = 8), intent(in) :: ldt
+	character(len = :), allocatable :: str
+
+	!********
+
+	! Number of seconds from 1904 to unix epoch (1970)
+	integer(kind = 8), parameter :: dt_s_1904_1970 = 2082844800
+
+	str = ctime(ldt - dt_s_1904_1970)
+
+end function ldt2str
 
 !===============================================================================
 
