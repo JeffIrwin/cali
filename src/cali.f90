@@ -109,18 +109,9 @@ function read_u32(unit) result(u32)
 	!********
 
 	integer(kind = 4) :: i32
-	integer(kind = 8) :: i64
 
 	read(unit) i32
-	i64 = i32
-
-	!print *, 'i64 = ', i64
-	!print '(a,z0)', ' i64 = ', i64
-
-	!if (i64 < 0) i64 = i64 + huge(i32)
-	i64 = iand(i64, int(z'ffffffff', 8)) ! TODO: make macro to shorten z8 casting syntax
-
-	u32 = i64
+	u32 = iand(i32, int(z'ffffffff', 8)) ! TODO: make macro to shorten z8 casting syntax
 
 end function read_u32
 
@@ -135,13 +126,9 @@ function read_u16(unit) result(u16)
 	!********
 
 	integer(kind = 2) :: i16
-	integer(kind = 8) :: i64
 
 	read(unit) i16
-	i64 = i16
-	!if (i64 < 0) i64 = i64 + huge(i16)
-	i64 = iand(i64, z'ffff')
-	u16 = i64
+	u16 = iand(i16, z'ffff')
 
 end function read_u16
 
