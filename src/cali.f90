@@ -172,7 +172,7 @@ function read_ttf_table(iu) result(table)
 	!********
 
 	integer :: io
-	integer(kind = 8) :: i, j, old, sum, u32
+	integer(kind = 8) :: i, j, old, sum
 	integer, parameter :: SEEK_ABS = 0
 
 	table%tag      = read_str(iu, 4)
@@ -198,17 +198,14 @@ function read_ttf_table(iu) result(table)
 	call fseek(iu, table%offset, SEEK_ABS)
 
 	sum = 0
-	do j = 1, (table%length + 3) / 4  ! ???
-		u32 = read_u32(iu)
-		!print '(a,z0.8)', ' u32 = ', u32
-		sum = sum + u32
-		sum = iand(sum, z'ffffffff')
-		!print '(a,z0)', ' sum   = ', sum
+
+	! Number of 4-byte words is ceiling(num_bytes / 4)
+	do j = 1, (table%length + 3) / 4
+		sum = sum + read_u32(iu)
 	end do
 	!print '(a,z0)', '  sum   = ', sum
 
-	!sum = mod(sum, 2 ** 32)
-	!sum = iand(sum, z'ffffffff')
+	sum = iand(sum, z'ffffffff')
 	!print '(a,z0)', ' final  sum   = ', sum
 	!print '(a,z0)', ' final csum   = ', table%checksum
 
