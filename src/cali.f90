@@ -152,53 +152,7 @@ function read_ttf(filename) result(ttf)
 	allocate(ttf%tables( ttf%num_tables ))
 
 	do i = 1, ttf%num_tables
-
-		! TODO: refactor to read_table fn
-
-		ttf%tables(i)%tag      = read_str(iu, 4)
-		ttf%tables(i)%checksum = read_u32(iu)
-		ttf%tables(i)%offset   = read_u32(iu)
-		ttf%tables(i)%length   = read_u32(iu)
-
-		!print *, 'tag    = ', ttf%tables(i)%tag
-		!print *, 'offset = ', ttf%tables(i)%offset
-		!print *, 'length = ', ttf%tables(i)%length
-		!print '(a,z0)', 'length = ', ttf%tables(i)%length
-		!print *, 'offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
-		!print '(a,z0)', ' offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
-		!print *, ''
-
-		! TODO: handle checkSumAdjustment somewhere
-		if (ttf%tables(i)%tag == "head") cycle
-
-		! Verify checksum
-		old = ftell(iu)
-		!print '(a,z0)', ' old = ', old
-
-		call fseek(iu, ttf%tables(i)%offset, SEEK_ABS)
-
-		sum = 0
-		do j = 1, (ttf%tables(i)%length + 3) / 4  ! ???
-			u32 = read_u32(iu)
-			!print '(a,z0.8)', ' u32 = ', u32
-			sum = sum + u32
-			sum = iand(sum, z'ffffffff')
-			!print '(a,z0)', ' sum   = ', sum
-		end do
-		!print '(a,z0)', '  sum   = ', sum
-
-		!sum = mod(sum, 2 ** 32)
-		!sum = iand(sum, z'ffffffff')
-		!print '(a,z0)', ' final  sum   = ', sum
-		!print '(a,z0)', ' final csum   = ', ttf%tables(i)%checksum
-
-		if (sum /= ttf%tables(i)%checksum) then
-			write(*,*) 'Error: bad checksum for table ', ttf%tables(i)%tag
-			call exit(-1)
-		end if
-
-		call fseek(iu, old, SEEK_ABS)
-
+		ttf%tables(i) = read_ttf_table(iu)
 	end do
 
 	close(iu)
@@ -206,6 +160,66 @@ function read_ttf(filename) result(ttf)
 	!print *, ''
 
 end function read_ttf
+
+!===============================================================================
+
+function read_ttf_table(iu) result(table)
+
+	integer, intent(in) :: iu
+
+	type(ttf_table) :: table
+
+	!********
+
+	integer :: io
+	integer(kind = 8) :: i, j, old, sum, u32
+	integer, parameter :: SEEK_ABS = 0
+
+	table%tag      = read_str(iu, 4)
+	table%checksum = read_u32(iu)
+	table%offset   = read_u32(iu)
+	table%length   = read_u32(iu)
+
+	!print *, 'tag    = ', table%tag
+	!print *, 'offset = ', table%offset
+	!print *, 'length = ', table%length
+	!print '(a,z0)', 'length = ', table%length
+	!print *, 'offset + length = ', table%offset + table%length
+	!print '(a,z0)', ' offset + length = ', table%offset + table%length
+	!print *, ''
+
+	! TODO: handle checkSumAdjustment somewhere
+	if (table%tag == "head") return
+
+	! Verify checksum
+	old = ftell(iu)
+	!print '(a,z0)', ' old = ', old
+
+	call fseek(iu, table%offset, SEEK_ABS)
+
+	sum = 0
+	do j = 1, (table%length + 3) / 4  ! ???
+		u32 = read_u32(iu)
+		!print '(a,z0.8)', ' u32 = ', u32
+		sum = sum + u32
+		sum = iand(sum, z'ffffffff')
+		!print '(a,z0)', ' sum   = ', sum
+	end do
+	!print '(a,z0)', '  sum   = ', sum
+
+	!sum = mod(sum, 2 ** 32)
+	!sum = iand(sum, z'ffffffff')
+	!print '(a,z0)', ' final  sum   = ', sum
+	!print '(a,z0)', ' final csum   = ', table%checksum
+
+	if (sum /= table%checksum) then
+		write(*,*) 'Error: bad checksum for table ', table%tag
+		call exit(-1)
+	end if
+
+	call fseek(iu, old, SEEK_ABS)
+
+end function read_ttf_table
 
 !===============================================================================
 
