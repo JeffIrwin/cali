@@ -111,7 +111,7 @@ function read_u32(unit) result(u32)
 	integer(kind = 4) :: i32
 
 	read(unit) i32
-	u32 = iand(i32, int(z'ffffffff', 8)) ! TODO: make macro to shorten z8 casting syntax
+	u32 = iand(int(i32,8), int(z'ffffffff',8)) ! TODO: make macro to shorten z8 casting syntax
 
 end function read_u32
 
