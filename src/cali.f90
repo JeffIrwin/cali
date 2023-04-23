@@ -177,7 +177,7 @@ function read_ttf(filename) result(ttf)
 		ttf%tables(i) = read_ttf_table(iu)
 	end do
 
-	! Read head table TODO
+	! Read head table
 	head = ttf%get_table("head")
 	call fseek(iu, ttf%tables(head)%offset, SEEK_ABS)
 
@@ -191,7 +191,7 @@ function read_ttf(filename) result(ttf)
     ttf%magic_num    = read_u32(iu)
 	!print '(a,z0)', ' magic_num = ', ttf%magic_num
 
-	if (ttf%magic_num /= z'5f0f3cf5') then
+	if (ttf%magic_num /= int(z'5f0f3cf5')) then
 		write(*,*) 'Error: bad magic number'
 		call exit(EXIT_FAILURE)
 	end if
@@ -200,6 +200,8 @@ function read_ttf(filename) result(ttf)
     ttf%units_per_em = read_u16(iu)
 
 	print *, 'units_per_em = ', ttf%units_per_em
+
+	! TODO: read created/modified date.  Need read_date() helper fn
 
 	close(iu)
 	!print *, 'done read_ttf()'
