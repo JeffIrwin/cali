@@ -161,6 +161,8 @@ function get_table(ttf, tag) result(table_id)
 	do table_id = 1, ttf%num_tables
 		if (ttf%tables(table_id)%tag == tag) return
 	end do
+
+	! TODO: call exit?
 	table_id = -1
 
 end function get_table
@@ -204,7 +206,7 @@ function read_ttf(filename) result(ttf)
 		ttf%tables(i) = read_ttf_table(iu)
 	end do
 
-	! Read head table
+	! Read head table. TODO: parameterize "head"
 	head = ttf%get_table("head")
 	call fseek(iu, ttf%tables(head)%offset, SEEK_ABS)
 
@@ -214,8 +216,8 @@ function read_ttf(filename) result(ttf)
 	print * ,'ttf%version  = ', ttf%version
 	print * ,'ttf%font_rev = ', ttf%font_rev
 
-    ttf%checksum_adj = read_u32(iu)
-    ttf%magic_num    = read_u32(iu)
+	ttf%checksum_adj = read_u32(iu)
+	ttf%magic_num    = read_u32(iu)
 	!print '(a,z0)', ' magic_num = ', ttf%magic_num
 
 	if (ttf%magic_num /= int(z'5f0f3cf5')) then
@@ -223,8 +225,8 @@ function read_ttf(filename) result(ttf)
 		call exit(EXIT_FAILURE)
 	end if
 
-    ttf%flags        = read_u16(iu)
-    ttf%units_per_em = read_u16(iu)
+	ttf%flags        = read_u16(iu)
+	ttf%units_per_em = read_u16(iu)
 
 	print *, 'units_per_em = ', ttf%units_per_em
 
