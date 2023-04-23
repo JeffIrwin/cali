@@ -66,10 +66,10 @@ function read_u32(unit) result(u32)
 	i64 = i32
 
 	!print *, 'i64 = ', i64
-	print '(a,z0)', ' i64 = ', i64
+	!print '(a,z0)', ' i64 = ', i64
 
 	!if (i64 < 0) i64 = i64 + huge(i32)
-	i64 = iand(i64, z'ffffffff')
+	i64 = iand(i64, int(z'ffffffff', 8)) ! TODO: make macro to shorten z8 casting syntax
 
 	u32 = i64
 
@@ -137,7 +137,7 @@ function read_ttf(filename) result(ttf)
 		call exit(EXIT_FAILURE)
 	end if
 
-	write(*,*) 'reading file "', filename, '" ...'
+	write(*,*) 'Reading file "', filename, '" ...'
 
 	ttf%scalar_type  = read_u32(iu)
 	ttf%num_tables   = read_u16(iu)
@@ -145,7 +145,7 @@ function read_ttf(filename) result(ttf)
 	ttf%entry_select = read_u16(iu)
 	ttf%range_shift  = read_u16(iu)
 
-	print *, 'scalar_type = ', ttf%scalar_type
+	!print *, 'scalar_type = ', ttf%scalar_type
 
 	write(*, '(a,i0)') ' Number of tables = ', ttf%num_tables
 
@@ -160,51 +160,50 @@ function read_ttf(filename) result(ttf)
 		ttf%tables(i)%offset   = read_u32(iu)
 		ttf%tables(i)%length   = read_u32(iu)
 
-		print *, 'tag    = ', ttf%tables(i)%tag
-		print *, 'offset = ', ttf%tables(i)%offset
-		print *, 'length = ', ttf%tables(i)%length
-		print '(a,z0)', 'length = ', ttf%tables(i)%length
-		print *, 'offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
-		print '(a,z0)', ' offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
-		print *, ''
+		!print *, 'tag    = ', ttf%tables(i)%tag
+		!print *, 'offset = ', ttf%tables(i)%offset
+		!print *, 'length = ', ttf%tables(i)%length
+		!print '(a,z0)', 'length = ', ttf%tables(i)%length
+		!print *, 'offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
+		!print '(a,z0)', ' offset + length = ', ttf%tables(i)%offset + ttf%tables(i)%length
+		!print *, ''
 
 		! TODO: handle checkSumAdjustment somewhere
 		if (ttf%tables(i)%tag == "head") cycle
 
 		! Verify checksum
 		old = ftell(iu)
-		print '(a,z0)', ' old = ', old
+		!print '(a,z0)', ' old = ', old
 
 		call fseek(iu, ttf%tables(i)%offset, SEEK_ABS)
 
 		sum = 0
 		do j = 1, (ttf%tables(i)%length + 3) / 4  ! ???
 			u32 = read_u32(iu)
-			print '(a,z0.8)', ' u32 = ', u32
+			!print '(a,z0.8)', ' u32 = ', u32
 			sum = sum + u32
 			sum = iand(sum, z'ffffffff')
-			print '(a,z0)', ' sum   = ', sum
+			!print '(a,z0)', ' sum   = ', sum
 		end do
-		print '(a,z0)', '  sum   = ', sum
+		!print '(a,z0)', '  sum   = ', sum
 
 		!sum = mod(sum, 2 ** 32)
 		!sum = iand(sum, z'ffffffff')
-		print '(a,z0)', ' final  sum   = ', sum
-		print '(a,z0)', ' final csum   = ', ttf%tables(i)%checksum
+		!print '(a,z0)', ' final  sum   = ', sum
+		!print '(a,z0)', ' final csum   = ', ttf%tables(i)%checksum
 
 		if (sum /= ttf%tables(i)%checksum) then
 			write(*,*) 'Error: bad checksum for table ', ttf%tables(i)%tag
 			call exit(-1)
 		end if
-		!stop
 
 		call fseek(iu, old, SEEK_ABS)
 
 	end do
 
 	close(iu)
-	print *, 'done read_ttf()'
-	print *, ''
+	!print *, 'done read_ttf()'
+	!print *, ''
 
 end function read_ttf
 
