@@ -24,9 +24,16 @@ module cali_m
 	!********
 
 	type ttf_table
+		! Table metadata from ttf file header
 		character(len = :), allocatable :: tag
 		integer(kind = 8) :: checksum, offset, length
 	end type ttf_table
+
+	!********
+
+	type glyph_t
+		integer(kind = 8) :: ncontours, xmin, ymin, xmax, ymax
+	end type glyph_t
 
 	!********
 
@@ -42,6 +49,7 @@ module cali_m
 
 		double precision :: vers, font_rev, maxp_vers
 
+		type(glyph_t), allocatable :: glyphs(:)
 		type(ttf_table), allocatable :: tables(:)
 
 		contains
@@ -187,8 +195,8 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu
-	integer(kind = 8) :: i, head, maxp, loca, glyf, sum, filesize, offset, &
-		ncontours
+	integer(kind = 8) :: i, head, maxp, loca, glyf, sum, filesize, offset
+
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -310,8 +318,12 @@ function read_ttf(filename) result(ttf)
 	glyf = ttf%get_table("glyf")
 	!print *, 'loca, glyf = ', loca, glyf
 
+	allocate(ttf%glyphs( 0: ttf%nglyphs ))
 	do i = 0, ttf%nglyphs - 1
+	!do i = 0, 10
 		!print *, 'i = ', i
+
+		! TODO: refactor as read_glyph() fn to save typing
 
 		if (ttf%index2loc_fmt == 0) then
 			call fseek(iu, ttf%tables(loca)%offset + 2 * i, SEEK_ABS)
@@ -324,10 +336,18 @@ function read_ttf(filename) result(ttf)
 		call fseek(iu, offset, SEEK_ABS)
 		!print '(a,z0)', ' glyph offset = ', offset
 
-		! TODO: put ncontours in a glyph struct and save in an allocatable glyph
-		! array
-		ncontours = read_u16(iu)
-		!print *, 'ncontours = ', ncontours
+		ttf%glyphs(i)%ncontours = read_u16(iu)
+		!print *, 'ncontours = ', ttf%glyphs(i)%ncontours
+
+		ttf%glyphs(i)%xmin = read_fword(iu)
+		ttf%glyphs(i)%ymin = read_fword(iu)
+		ttf%glyphs(i)%xmax = read_fword(iu)
+		ttf%glyphs(i)%ymax = read_fword(iu)
+
+		!print *, "xmin = ", ttf%glyphs(i)%xmin
+		!print *, "ymin = ", ttf%glyphs(i)%ymin
+		!print *, "xmax = ", ttf%glyphs(i)%xmax
+		!print *, "ymax = ", ttf%glyphs(i)%ymax
 
 		!stop
 	end do
@@ -375,7 +395,7 @@ function read_ttf_table(iu) result(table)
 	table%offset   = read_u32(iu)
 	table%length   = read_u32(iu)
 
-	print *, 'tag    = ', table%tag
+	!print *, 'tag    = ', table%tag
 	!print *, 'offset = ', table%offset
 	!print *, 'length = ', table%length
 	!print '(a,z0)', ' csum   = ', table%checksum
