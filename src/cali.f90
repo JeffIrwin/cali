@@ -32,15 +32,15 @@ module cali_m
 
 	type ttf_t
 
-		integer(kind = 8) :: scalar_type, num_tables, search_range, &
+		integer(kind = 8) :: scalar_type, ntables, search_range, &
 			entry_select, range_shift, checksum_adj, magic_num, flags, &
 			units_per_em, xmin, ymin, xmax, ymax, mac_style, low_rec_ppem, &
-			font_dir_hint, index2loc_fmt, glyph_data_fmt
+			font_dir_hint, index2loc_fmt, glyph_data_fmt, nglyphs
 
 		! Dates in ttf long date time format (i64 seconds since 1904)
 		integer(kind = 8) :: created, modified
 
-		double precision :: version, font_rev
+		double precision :: vers, font_rev, maxp_vers
 
 		type(ttf_table), allocatable :: tables(:)
 
@@ -158,7 +158,7 @@ function get_table(ttf, tag) result(table_id)
 
 	!********
 
-	do table_id = 1, ttf%num_tables
+	do table_id = 1, ttf%ntables
 		if (ttf%tables(table_id)%tag == tag) return
 	end do
 
@@ -178,7 +178,8 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu
-	integer(kind = 8) :: i, head, sum, filesize
+	integer(kind = 8) :: i, head, maxp, loca, glyf, sum, filesize, offset, &
+		ncontours
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -191,13 +192,17 @@ function read_ttf(filename) result(ttf)
 
 	! Verify head table checksum (whole file)
 
-	!return ! TODO: optionally skip verification, e.g. for corbeli?
+	! TODO: the issue with corbeli.ttf is that its number of bytes is not
+	! divisible by 4, so this reads past the end of file on the last 4-byte
+	! word.  It should be fixable by reading up until the last word, then
+	! reading the last 1-4 bytes and padding it with zeros
 
 	inquire(file = filename, size = filesize)
 	!print *, 'filesize = ', filesize
 
 	sum = 0
-	do i = 1, (filesize + 3) / 4
+	do i = 1, filesize / 4 ! TODO?
+	!do i = 1, (filesize + 3) / 4
 		sum = sum + read_u32(iu)
 	end do
 	sum = iand(sum, z'ffffffff')
@@ -210,7 +215,7 @@ function read_ttf(filename) result(ttf)
 	!print *, 'verified head checksum'
 
 	ttf%scalar_type  = read_u32(iu)
-	ttf%num_tables   = read_u16(iu)
+	ttf%ntables   = read_u16(iu)
 	ttf%search_range = read_u16(iu)
 	ttf%entry_select = read_u16(iu)
 	ttf%range_shift  = read_u16(iu)
@@ -220,12 +225,12 @@ function read_ttf(filename) result(ttf)
 	!print *, 'entry_select = ', ttf%entry_select
 	!print *, 'range_shift  = ', ttf%range_shift
 
-	write(*, '(a,i0)') ' Number of tables = ', ttf%num_tables
+	write(*, '(a,i0)') ' Number of tables = ', ttf%ntables
 
 	! Read offset tables which include the position and length of each table in
 	! the ttf file
-	allocate(ttf%tables( ttf%num_tables ))
-	do i = 1, ttf%num_tables
+	allocate(ttf%tables( ttf%ntables ))
+	do i = 1, ttf%ntables
 		ttf%tables(i) = read_ttf_table(iu)
 	end do
 
@@ -236,10 +241,10 @@ function read_ttf(filename) result(ttf)
 	head = ttf%get_table("head")
 	call fseek(iu, ttf%tables(head)%offset, SEEK_ABS)
 
-	ttf%version  = read_fixed(iu)
+	ttf%vers  = read_fixed(iu)
 	ttf%font_rev = read_fixed(iu)
 
-	print * ,'ttf%version  = ', ttf%version
+	print * ,'ttf%vers     = ', ttf%vers
 	print * ,'ttf%font_rev = ', ttf%font_rev
 
 	ttf%checksum_adj = read_u32(iu)
@@ -281,8 +286,51 @@ function read_ttf(filename) result(ttf)
 	!print *, 'mac_style      = ', ttf%mac_style
 	!print *, 'low_rec_ppem   = ', ttf%low_rec_ppem
 	!print *, 'font_dir_hint  = ', ttf%font_dir_hint
-	!print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
+	print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
 	!print *, 'glyph_data_fmt = ', ttf%glyph_data_fmt
+
+	maxp = ttf%get_table("maxp")
+	call fseek(iu, ttf%tables(maxp)%offset, SEEK_ABS)
+	ttf%maxp_vers = read_fixed(iu)
+	ttf%nglyphs   = read_u16(iu)
+
+	print *, 'maxp_vers      = ', ttf%maxp_vers
+	print *, 'nglyphs        = ', ttf%nglyphs
+
+	loca = ttf%get_table("loca")
+	glyf = ttf%get_table("glyf")
+	!call fseek(iu, ttf%tables(loca)%offset, SEEK_ABS)
+
+	print *, 'loca, glyf = ', loca, glyf
+
+	do i = 0, ttf%nglyphs - 1
+	!do i = 0, 10
+		print *, 'i = ', i
+
+		! Get glyph offset
+
+		!call fseek(iu, ttf%tables(loca)%offset, SEEK_ABS)
+		if (ttf%index2loc_fmt == 0) then
+			call fseek(iu, ttf%tables(loca)%offset + 2 * i, SEEK_ABS)
+			offset = 2 * read_u16(iu)
+		else
+			!print *, 'seek = ', ttf%tables(loca)%offset + 4 * i
+			call fseek(iu, ttf%tables(loca)%offset + 4 * i, SEEK_ABS)
+			offset = read_u32(iu)
+			!print '(a,z0)', '       offset = ', offset
+		end if
+		offset = offset + ttf%tables(glyf)%offset
+
+		!print '(a,z0)', ' glyph offset = ', offset
+		call fseek(iu, offset, SEEK_ABS)
+
+		! TODO: put ncontours in a glyph struct and save in an allocatable glyph
+		! array
+		ncontours = read_u16(iu)
+		print *, 'ncontours = ', ncontours
+
+		!stop
+	end do
 
 	close(iu)
 	!print *, 'done read_ttf()'
@@ -327,7 +375,7 @@ function read_ttf_table(iu) result(table)
 	table%offset   = read_u32(iu)
 	table%length   = read_u32(iu)
 
-	!print *, 'tag    = ', table%tag
+	print *, 'tag    = ', table%tag
 	!print *, 'offset = ', table%offset
 	!print *, 'length = ', table%length
 	!print '(a,z0)', ' csum   = ', table%checksum
@@ -336,9 +384,7 @@ function read_ttf_table(iu) result(table)
 	!print '(a,z0)', ' offset + length = ', table%offset + table%length
 	!print *, ''
 
-	! TODO: handle checkSumAdjustment somewhere
 	if (table%tag == "head") return
-	!return ! TODO: optionally skip verification, e.g. for corbeli?
 
 	! Verify checksum
 	old = ftell(iu)

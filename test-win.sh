@@ -13,7 +13,7 @@ nfiles=0
 #for f in $d/a*.ttf ; do
 for f in $d/*.ttf ; do
 
-	# TODO: what is up corbeli?  fontdrop.info can render it
+	# TODO: what is up with corbeli?  fontdrop.info can render it
 	if [[ "$f" != "$d/corbeli.ttf" ]]; then
 		./build/cali "$f"
 	fi
