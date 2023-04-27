@@ -72,7 +72,6 @@ function read_fixed(unit) result(fixed)
 	! TODO: error-handling for all IO fns?
 
 	integer, intent(in) :: unit
-
 	double precision :: fixed
 
 	!********
@@ -89,7 +88,6 @@ end function read_fixed
 function read_i64(unit) result(i64)
 
 	integer, intent(in) :: unit
-
 	integer(kind = 8) :: i64
 
 	read(unit) i64
@@ -101,12 +99,25 @@ end function read_i64
 function read_i16(unit) result(i16)
 
 	integer, intent(in) :: unit
-
 	integer(kind = 2) :: i16
 
 	read(unit) i16
 
 end function read_i16
+
+!===============================================================================
+
+function read_fword(unit) result(fword)
+
+	! This is just an alias for read_i16(), but the ttf docs refer to fword and
+	! i16 as separate types, so we do too
+
+	integer, intent(in) :: unit
+	integer(kind = 2) :: fword
+
+	fword = read_i16(unit)
+
+end function read_fword
 
 !===============================================================================
 
@@ -116,7 +127,6 @@ function read_u32(unit) result(u32)
 	! bigger int size, then re-interpret as the correct positive value
 
 	integer, intent(in) :: unit
-
 	integer(kind = 8) :: u32
 
 	!********
@@ -133,7 +143,6 @@ end function read_u32
 function read_u16(unit) result(u16)
 
 	integer, intent(in) :: unit
-
 	integer(kind = 8) :: u16
 
 	!********
@@ -286,7 +295,7 @@ function read_ttf(filename) result(ttf)
 	!print *, 'mac_style      = ', ttf%mac_style
 	!print *, 'low_rec_ppem   = ', ttf%low_rec_ppem
 	!print *, 'font_dir_hint  = ', ttf%font_dir_hint
-	print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
+	!print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
 	!print *, 'glyph_data_fmt = ', ttf%glyph_data_fmt
 
 	maxp = ttf%get_table("maxp")
@@ -294,40 +303,31 @@ function read_ttf(filename) result(ttf)
 	ttf%maxp_vers = read_fixed(iu)
 	ttf%nglyphs   = read_u16(iu)
 
-	print *, 'maxp_vers      = ', ttf%maxp_vers
+	!print *, 'maxp_vers      = ', ttf%maxp_vers
 	print *, 'nglyphs        = ', ttf%nglyphs
 
 	loca = ttf%get_table("loca")
 	glyf = ttf%get_table("glyf")
-	!call fseek(iu, ttf%tables(loca)%offset, SEEK_ABS)
-
-	print *, 'loca, glyf = ', loca, glyf
+	!print *, 'loca, glyf = ', loca, glyf
 
 	do i = 0, ttf%nglyphs - 1
-	!do i = 0, 10
-		print *, 'i = ', i
+		!print *, 'i = ', i
 
-		! Get glyph offset
-
-		!call fseek(iu, ttf%tables(loca)%offset, SEEK_ABS)
 		if (ttf%index2loc_fmt == 0) then
 			call fseek(iu, ttf%tables(loca)%offset + 2 * i, SEEK_ABS)
 			offset = 2 * read_u16(iu)
 		else
-			!print *, 'seek = ', ttf%tables(loca)%offset + 4 * i
 			call fseek(iu, ttf%tables(loca)%offset + 4 * i, SEEK_ABS)
 			offset = read_u32(iu)
-			!print '(a,z0)', '       offset = ', offset
 		end if
 		offset = offset + ttf%tables(glyf)%offset
-
-		!print '(a,z0)', ' glyph offset = ', offset
 		call fseek(iu, offset, SEEK_ABS)
+		!print '(a,z0)', ' glyph offset = ', offset
 
 		! TODO: put ncontours in a glyph struct and save in an allocatable glyph
 		! array
 		ncontours = read_u16(iu)
-		print *, 'ncontours = ', ncontours
+		!print *, 'ncontours = ', ncontours
 
 		!stop
 	end do
