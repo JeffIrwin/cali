@@ -305,15 +305,15 @@ function read_ttf(filename) result(ttf)
 	print *, 'modified  = ', ldt2str(ttf%modified)
 
 	! These values are Fword's, which are just i16's
-	ttf%xmin = read_i16(iu)
-	ttf%ymin = read_i16(iu)
-	ttf%xmax = read_i16(iu)
-	ttf%ymax = read_i16(iu)
+	ttf%xmin = read_fword(iu)
+	ttf%ymin = read_fword(iu)
+	ttf%xmax = read_fword(iu)
+	ttf%ymax = read_fword(iu)
 
-	print *, 'xmin = ', ttf%xmin
-	print *, 'ymin = ', ttf%ymin
-	print *, 'xmax = ', ttf%xmax
-	print *, 'ymax = ', ttf%ymax
+	!print *, 'xmin = ', ttf%xmin
+	!print *, 'ymin = ', ttf%ymin
+	!print *, 'xmax = ', ttf%xmax
+	!print *, 'ymax = ', ttf%ymax
 
 	ttf%mac_style      = read_u16(iu)
 	ttf%low_rec_ppem   = read_u16(iu)
@@ -344,12 +344,8 @@ function read_ttf(filename) result(ttf)
 
 	allocate(ttf%glyphs( 0: ttf%nglyphs ))
 	!do i = 0, ttf%nglyphs - 1
-	do i = 426, 426
-		!print *, 'i = ', i
-
+	do i = 74, 80
 		ttf%glyphs(i) = read_glyph(iu, ttf, i)
-
-		!stop
 	end do
 
 	close(iu)
@@ -375,8 +371,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	integer :: j, k, k0, pos
 	integer(kind = 8) :: offset
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
-	integer(kind = 2), parameter :: REPEAT = 8, X_IS_BYTE = 2, Y_IS_BYTE = 4, &
-		X_DELTA = 16, Y_DELTA = 32
+	integer(kind = 2), parameter :: X_IS_BYTE = 2, Y_IS_BYTE = 4, &
+		REPEAT = 8, X_DELTA = 16, Y_DELTA = 32
 
 	if (ttf%index2loc_fmt == 0) then
 		call fseek(iu, ttf%loca_offset + 2 * iglyph, SEEK_ABS)
@@ -387,7 +383,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	end if
 	offset = offset + ttf%glyf_offset
 	call fseek(iu, offset, SEEK_ABS)
-	print '(a,z0)', ' glyph offset = ', offset
+	!print '(a,z0)', ' glyph offset = ', offset
 
 	glyph%ncontours = read_u16(iu)
 	print *, 'ncontours = ', glyph%ncontours
@@ -397,15 +393,17 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	glyph%xmax = read_fword(iu)
 	glyph%ymax = read_fword(iu)
 
-	print *, "xmin = ", glyph%xmin
-	print *, "ymin = ", glyph%ymin
-	print *, "xmax = ", glyph%xmax
-	print *, "ymax = ", glyph%ymax
+	!print *, "xmin = ", glyph%xmin
+	!print *, "ymin = ", glyph%ymin
+	!print *, "xmax = ", glyph%xmax
+	!print *, "ymax = ", glyph%ymax
 
 	if (glyph%ncontours < 0) then
 		! TODO: read compound glyph
-		return
+		write(*,*) error//'compound glyphs are not supported'
+		call exit(EXIT_FAILURE)
 	end if
+
 	! Read simple glyph
 
 	allocate(glyph%end_pts( glyph%ncontours ))
@@ -415,7 +413,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 		glyph%end_pts(j) = read_u16(iu)
 	end do
 
-	print *, 'end_pts = ', glyph%end_pts
+	!print *, 'end_pts = ', glyph%end_pts
 
 	! Skip instructions for now. TODO: read and save
 	glyph%ninst = read_u16(iu)
@@ -453,17 +451,16 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	end do
 	!print *, 'flags = ', glyph%flags
 
-	! x *and* y coordinates
+	! Read x *and* y coords
 	allocate(glyph%x(2, glyph%npts))
-	!glyph%x = 0 ! TODO
-
-	! Read x coords
 	is_byte = X_IS_BYTE
 	delta   = X_DELTA
-	do k = 1, 2
+	do k = 1, 2  ! x/y loop
+
 		pos = 0
 		do j = 1, glyph%npts
 			flag = glyph%flags(j)
+
 			if (iand(flag, is_byte) /= 0) then
 				if (iand(flag, delta) /= 0) then
 					!print *, '+ u8'
@@ -472,13 +469,14 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 					!print *, '- u8'
 					pos = pos - read_u8(iu)
 				end if
-			else if (and( ieor(flag,z'ffff'), delta) /= 0) then
+			else if (iand( ieor(flag,z'ffff'), delta ) /= 0) then
 				!print *, '+ i16'
 				pos = pos + read_i16(iu)
-			else
-				!!print *, 'nop'
-				! pos is unchanged
+			!else
+			!	!!print *, 'nop'
+			!	! pos is unchanged
 			end if
+
 			glyph%x(k,j) = pos
 		end do
 
@@ -490,6 +488,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!print *, 'x, y = '
 	!print '(2i6)', glyph%x
 
+	!return
+
 	! Print scilab source code for plotting
 	k0 = 1
 	do j = 1, glyph%ncontours
@@ -500,7 +500,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 		end do
 		print '(2i8)', glyph%x(:,k0)
 		print *, ']'
-		print *, 'plot(x(:,1), x(:,2))'
+		print '(a,i0,a)', 'plot(x(:,1) + 1000 * ', iglyph, ', x(:,2))'
+		! ^ totally arbitrary bad kerning
 
 		k0 = glyph%end_pts(j) + 2
 	end do
