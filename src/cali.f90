@@ -164,7 +164,7 @@ function read_u8(unit) result(u8)
 	integer(kind = 1) :: i8
 
 	read(unit) i8
-	u8 = iand(i8, z'ff')
+	u8 = iand(int(i8,4), int(z'000000ff',4))
 
 end function read_u8
 
