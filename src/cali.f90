@@ -449,7 +449,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 		end if
 
 	end do
-	!print *, 'flags = ', glyph%flags
+	print *, 'flags = ', glyph%flags
 
 	! Read x *and* y coords
 	allocate(glyph%x(2, glyph%npts))
