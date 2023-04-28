@@ -6,14 +6,12 @@ set -e
 
 ./build.sh
 
-# TODO: where are Ubuntu fonts?  /usr/local/share/fonts?
 d=/mnt/c/Windows/Fonts/
+#d=/usr/share/fonts/truetype/ubuntu/
 
 nfiles=0
-#for f in $d/a*.ttf ; do
 for f in $d/*.ttf ; do
 
-	# TODO: what is up with corbeli?  fontdrop.info can render it
 	if [[ "$f" != "$d/corbeli.ttf" ]]; then
 		./build/cali "$f"
 	fi

@@ -44,6 +44,9 @@ module cali_m
 			units_per_em, xmin, ymin, xmax, ymax, mac_style, low_rec_ppem, &
 			font_dir_hint, index2loc_fmt, glyph_data_fmt, nglyphs
 
+		! Table offsets
+		integer(kind = 8) :: glyf_offset, loca_offset
+
 		! Dates in ttf long date time format (i64 seconds since 1904)
 		integer(kind = 8) :: created, modified
 
@@ -194,9 +197,8 @@ function read_ttf(filename) result(ttf)
 
 	!********
 
-	integer :: io, iu
-	integer(kind = 8) :: i, head, maxp, loca, glyf, sum, filesize, offset
-
+	integer :: i, io, iu
+	integer(kind = 8) :: head, maxp, sum, filesize
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -314,40 +316,19 @@ function read_ttf(filename) result(ttf)
 	!print *, 'maxp_vers      = ', ttf%maxp_vers
 	print *, 'nglyphs        = ', ttf%nglyphs
 
-	loca = ttf%get_table("loca")
-	glyf = ttf%get_table("glyf")
-	!print *, 'loca, glyf = ', loca, glyf
+	!loca = ttf%get_table("loca")
+	!glyf = ttf%get_table("glyf")
+	!!print *, 'loca, glyf = ', loca, glyf
+
+	ttf%loca_offset = ttf%tables( ttf%get_table("loca") )%offset
+	ttf%glyf_offset = ttf%tables( ttf%get_table("glyf") )%offset
 
 	allocate(ttf%glyphs( 0: ttf%nglyphs ))
 	do i = 0, ttf%nglyphs - 1
-	!do i = 0, 10
+	!do i = 74, 74
 		!print *, 'i = ', i
 
-		! TODO: refactor as read_glyph() fn to save typing
-
-		if (ttf%index2loc_fmt == 0) then
-			call fseek(iu, ttf%tables(loca)%offset + 2 * i, SEEK_ABS)
-			offset = 2 * read_u16(iu)
-		else
-			call fseek(iu, ttf%tables(loca)%offset + 4 * i, SEEK_ABS)
-			offset = read_u32(iu)
-		end if
-		offset = offset + ttf%tables(glyf)%offset
-		call fseek(iu, offset, SEEK_ABS)
-		!print '(a,z0)', ' glyph offset = ', offset
-
-		ttf%glyphs(i)%ncontours = read_u16(iu)
-		!print *, 'ncontours = ', ttf%glyphs(i)%ncontours
-
-		ttf%glyphs(i)%xmin = read_fword(iu)
-		ttf%glyphs(i)%ymin = read_fword(iu)
-		ttf%glyphs(i)%xmax = read_fword(iu)
-		ttf%glyphs(i)%ymax = read_fword(iu)
-
-		!print *, "xmin = ", ttf%glyphs(i)%xmin
-		!print *, "ymin = ", ttf%glyphs(i)%ymin
-		!print *, "xmax = ", ttf%glyphs(i)%xmax
-		!print *, "ymax = ", ttf%glyphs(i)%ymax
+		ttf%glyphs(i) = read_glyph(iu, ttf, i)
 
 		!stop
 	end do
@@ -357,6 +338,48 @@ function read_ttf(filename) result(ttf)
 	!print *, ''
 
 end function read_ttf
+
+!===============================================================================
+
+function read_glyph(iu, ttf, i) result(glyph)
+
+	! Read glyf index i from file unit iu in the ttf struct
+
+	integer, intent(in) :: iu, i
+
+	type(ttf_t), intent(in) :: ttf
+
+	type(glyph_t) :: glyph
+
+	!********
+
+	integer(kind = 8) :: offset
+
+	if (ttf%index2loc_fmt == 0) then
+		call fseek(iu, ttf%loca_offset + 2 * i, SEEK_ABS)
+		offset = 2 * read_u16(iu)
+	else
+		call fseek(iu, ttf%loca_offset + 4 * i, SEEK_ABS)
+		offset = read_u32(iu)
+	end if
+	offset = offset + ttf%glyf_offset
+	call fseek(iu, offset, SEEK_ABS)
+	!print '(a,z0)', ' glyph offset = ', offset
+
+	glyph%ncontours = read_u16(iu)
+	print *, 'ncontours = ', glyph%ncontours
+
+	glyph%xmin = read_fword(iu)
+	glyph%ymin = read_fword(iu)
+	glyph%xmax = read_fword(iu)
+	glyph%ymax = read_fword(iu)
+
+	print *, "xmin = ", glyph%xmin
+	print *, "ymin = ", glyph%ymin
+	print *, "xmax = ", glyph%xmax
+	print *, "ymax = ", glyph%ymax
+
+end function read_glyph
 
 !===============================================================================
 
