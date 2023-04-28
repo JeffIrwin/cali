@@ -8,6 +8,7 @@ module cali_m
 	integer, parameter :: &
 		EXIT_SUCCESS = 0, &
 		EXIT_FAILURE = -1, &
+		SEEK_REL = 1, &
 		SEEK_ABS = 0
 
 	character, parameter :: &
@@ -32,7 +33,9 @@ module cali_m
 	!********
 
 	type glyph_t
-		integer(kind = 8) :: ncontours, xmin, ymin, xmax, ymax
+		integer(kind = 8) :: ncontours, xmin, ymin, xmax, ymax, ninst, npts
+		integer(kind = 8), allocatable :: x(:,:), end_pts(:)
+		integer(kind = 2), allocatable :: flags(:)
 	end type glyph_t
 
 	!********
@@ -148,6 +151,22 @@ function read_u32(unit) result(u32)
 	u32 = iand(int(i32,8), int(z'ffffffff',8)) ! TODO: make macro to shorten z8 casting syntax
 
 end function read_u32
+
+!===============================================================================
+
+function read_u8(unit) result(u8)
+
+	integer, intent(in) :: unit
+	integer(kind = 8) :: u8
+
+	!********
+
+	integer(kind = 1) :: i8
+
+	read(unit) i8
+	u8 = iand(i8, z'ff')
+
+end function read_u8
 
 !===============================================================================
 
@@ -324,8 +343,8 @@ function read_ttf(filename) result(ttf)
 	ttf%glyf_offset = ttf%tables( ttf%get_table("glyf") )%offset
 
 	allocate(ttf%glyphs( 0: ttf%nglyphs ))
-	do i = 0, ttf%nglyphs - 1
-	!do i = 74, 74
+	!do i = 0, ttf%nglyphs - 1
+	do i = 74, 74
 		!print *, 'i = ', i
 
 		ttf%glyphs(i) = read_glyph(iu, ttf, i)
@@ -341,11 +360,11 @@ end function read_ttf
 
 !===============================================================================
 
-function read_glyph(iu, ttf, i) result(glyph)
+function read_glyph(iu, ttf, iglyph) result(glyph)
 
-	! Read glyf index i from file unit iu in the ttf struct
+	! Read glyph index iglyph from file unit iu in the ttf struct
 
-	integer, intent(in) :: iu, i
+	integer, intent(in) :: iu, iglyph
 
 	type(ttf_t), intent(in) :: ttf
 
@@ -353,18 +372,22 @@ function read_glyph(iu, ttf, i) result(glyph)
 
 	!********
 
+	integer :: j, k, pos
 	integer(kind = 8) :: offset
+	integer(kind = 2) :: flag, nrepeat, is_byte, delta
+	integer(kind = 2), parameter :: REPEAT = 8, X_IS_BYTE = 2, Y_IS_BYTE = 4, &
+		X_DELTA = 16, Y_DELTA = 32
 
 	if (ttf%index2loc_fmt == 0) then
-		call fseek(iu, ttf%loca_offset + 2 * i, SEEK_ABS)
+		call fseek(iu, ttf%loca_offset + 2 * iglyph, SEEK_ABS)
 		offset = 2 * read_u16(iu)
 	else
-		call fseek(iu, ttf%loca_offset + 4 * i, SEEK_ABS)
+		call fseek(iu, ttf%loca_offset + 4 * iglyph, SEEK_ABS)
 		offset = read_u32(iu)
 	end if
 	offset = offset + ttf%glyf_offset
 	call fseek(iu, offset, SEEK_ABS)
-	!print '(a,z0)', ' glyph offset = ', offset
+	print '(a,z0)', ' glyph offset = ', offset
 
 	glyph%ncontours = read_u16(iu)
 	print *, 'ncontours = ', glyph%ncontours
@@ -378,6 +401,94 @@ function read_glyph(iu, ttf, i) result(glyph)
 	print *, "ymin = ", glyph%ymin
 	print *, "xmax = ", glyph%xmax
 	print *, "ymax = ", glyph%ymax
+
+	if (glyph%ncontours < 0) then
+		! TODO: read compound glyph
+		return
+	end if
+	! Read simple glyph
+
+	allocate(glyph%end_pts( glyph%ncontours ))
+	!glyph%end_pts = 0
+
+	do j = 1, glyph%ncontours
+		glyph%end_pts(j) = read_u16(iu)
+	end do
+
+	print *, 'end_pts = ', glyph%end_pts
+
+	! Skip instructions for now. TODO: read and save
+	glyph%ninst = read_u16(iu)
+	call fseek(iu, glyph%ninst, SEEK_REL)
+
+	glyph%npts = maxval( glyph%end_pts ) + 1  ! why is this off by one?
+	print *, 'npts = ', glyph%npts
+
+	allocate(glyph%flags( glyph%npts ))
+	!glyph%flags = 0 ! TODO: initializing shouldn't be required if we read everything correctly
+
+	j = 0
+	do while (j < glyph%npts)
+		j = j + 1
+
+		flag = read_u8(iu)
+		glyph%flags(j) = flag
+
+		!print '(a,z2)', 'flag = ', flag
+
+		! TODO: unpack flags into individual booleans like onCurve etc.  Make
+		! sure it is unpacked for the repeated flags too
+
+		if (iand(flag, REPEAT) /= 0) then
+			nrepeat = read_u8(iu)
+			!print *, 'nrepeat = ', nrepeat
+
+			do k = 1, nrepeat
+				j = j + 1
+				glyph%flags(j) = flag
+			end do
+
+		end if
+
+	end do
+	!print *, 'flags = ', glyph%flags
+
+	! x *and* y coordinates
+	allocate(glyph%x(2, glyph%npts))
+	!glyph%x = 0 ! TODO
+
+	! Read x coords
+	is_byte = X_IS_BYTE
+	delta   = X_DELTA
+	do k = 1, 2
+		pos = 0
+		do j = 1, glyph%npts
+			flag = glyph%flags(j)
+			if (iand(flag, is_byte) /= 0) then
+				if (iand(flag, delta) /= 0) then
+					!print *, '+ u8'
+					pos = pos + read_u8(iu)
+				else
+					!print *, '- u8'
+					pos = pos - read_u8(iu)
+				end if
+			else if (and( ieor(flag,z'ffff'), delta) /= 0) then
+				!print *, '+ i16'
+				pos = pos + read_i16(iu)
+			else
+				!!print *, 'nop'
+				! pos is unchanged
+			end if
+			glyph%x(k,j) = pos
+		end do
+
+		is_byte = Y_IS_BYTE ! TODO: nasty hack
+		delta   = Y_DELTA
+
+	end do
+
+	print *, 'x, y = '
+	print '(2i6)', glyph%x
 
 end function read_glyph
 
