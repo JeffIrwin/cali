@@ -344,7 +344,7 @@ function read_ttf(filename) result(ttf)
 
 	allocate(ttf%glyphs( 0: ttf%nglyphs ))
 	!do i = 0, ttf%nglyphs - 1
-	do i = 74, 74
+	do i = 426, 426
 		!print *, 'i = ', i
 
 		ttf%glyphs(i) = read_glyph(iu, ttf, i)
@@ -372,7 +372,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	!********
 
-	integer :: j, k, pos
+	integer :: j, k, k0, pos
 	integer(kind = 8) :: offset
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
 	integer(kind = 2), parameter :: REPEAT = 8, X_IS_BYTE = 2, Y_IS_BYTE = 4, &
@@ -487,8 +487,23 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	end do
 
-	print *, 'x, y = '
-	print '(2i6)', glyph%x
+	!print *, 'x, y = '
+	!print '(2i6)', glyph%x
+
+	! Print scilab source code for plotting
+	k0 = 1
+	do j = 1, glyph%ncontours
+		print *, 'x = ['
+
+		do k = k0, glyph%end_pts(j) + 1
+			print '(2i8)', glyph%x(:,k)
+		end do
+		print '(2i8)', glyph%x(:,k0)
+		print *, ']'
+		print *, 'plot(x(:,1), x(:,2))'
+
+		k0 = glyph%end_pts(j) + 2
+	end do
 
 end function read_glyph
 
