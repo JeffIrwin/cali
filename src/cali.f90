@@ -463,21 +463,22 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 			if (iand(flag, is_byte) /= 0) then
 				if (iand(flag, delta) /= 0) then
-					!print *, '+ u8'
+					print *, '+ u8'
 					pos = pos + read_u8(iu)
 				else
-					!print *, '- u8'
+					print *, '- u8'
 					pos = pos - read_u8(iu)
 				end if
 			else if (iand( ieor(flag,z'ffff'), delta ) /= 0) then
-				!print *, '+ i16'
+				print *, '+ i16'
 				pos = pos + read_i16(iu)
-			!else
-			!	!!print *, 'nop'
-			!	! pos is unchanged
+			else
+				print *, 'nop'
+				! pos is unchanged
 			end if
 
 			glyph%x(j,i) = pos
+			print *, 'pos = ', pos
 		end do
 
 		is_byte = Y_IS_BYTE ! TODO: nasty hack
