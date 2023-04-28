@@ -12,15 +12,15 @@ module cali_m
 		SEEK_ABS = 0
 
 	character, parameter :: &
-			esc             = char(27)
+			ESC             = char(27)
 
 	character(len = *), parameter :: &
-			fg_bold_bright_red = esc//'[91;1m', &
-			fg_bright_green    = esc//'[92m', &
-			color_reset        = esc//'[0m'
+			FG_BOLD_BRIGHT_RED = ESC//'[91;1m', &
+			FG_BRIGHT_GREEN    = ESC//'[92m', &
+			COLOR_RESET        = ESC//'[0m'
 
 	character(len = *), parameter :: &
-		error = fg_bold_bright_red//'Error'//color_reset//': '
+		ERROR = FG_BOLD_BRIGHT_RED//'Error'//color_reset//': '
 
 	!********
 
@@ -222,7 +222,7 @@ function read_ttf(filename) result(ttf)
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
 	if (io /= EXIT_SUCCESS) then
-		write(*,*) error//'cannot open file "', filename, '"'
+		write(*,*) ERROR//'cannot open file "', filename, '"'
 		call exit(EXIT_FAILURE)
 	end if
 
@@ -246,7 +246,7 @@ function read_ttf(filename) result(ttf)
 	sum = iand(sum, z'ffffffff')
 
 	if (sum /= int(z'b1b0afba', 8)) then
-		write(*,*) error//'bad checksum for head table'
+		write(*,*) ERROR//'bad checksum for head table'
 		call exit(EXIT_FAILURE)
 	end if
 	call fseek(iu, 0, SEEK_ABS)
@@ -290,7 +290,7 @@ function read_ttf(filename) result(ttf)
 	!print '(a,z0)', ' magic_num = ', ttf%magic_num
 
 	if (ttf%magic_num /= int(z'5f0f3cf5')) then
-		write(*,*) error//'bad magic number'
+		write(*,*) ERROR//'bad magic number'
 		call exit(EXIT_FAILURE)
 	end if
 
@@ -344,7 +344,7 @@ function read_ttf(filename) result(ttf)
 
 	allocate(ttf%glyphs( 0: ttf%nglyphs ))
 	!do i = 0, ttf%nglyphs - 1
-	do i = 74, 80
+	do i = 74, 74!80
 		ttf%glyphs(i) = read_glyph(iu, ttf, i)
 	end do
 
@@ -368,7 +368,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	!********
 
-	integer :: j, k, k0, pos
+	integer :: i, j, j0, pos
 	integer(kind = 8) :: offset
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
 	integer(kind = 2), parameter :: X_IS_BYTE = 2, Y_IS_BYTE = 4, &
@@ -400,7 +400,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	if (glyph%ncontours < 0) then
 		! TODO: read compound glyph
-		write(*,*) error//'compound glyphs are not supported'
+		write(*,*) ERROR//'compound glyphs are not supported'
 		call exit(EXIT_FAILURE)
 	end if
 
@@ -409,8 +409,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	allocate(glyph%end_pts( glyph%ncontours ))
 	!glyph%end_pts = 0
 
-	do j = 1, glyph%ncontours
-		glyph%end_pts(j) = read_u16(iu)
+	do i = 1, glyph%ncontours
+		glyph%end_pts(i) = read_u16(iu)
 	end do
 
 	!print *, 'end_pts = ', glyph%end_pts
@@ -425,12 +425,12 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	allocate(glyph%flags( glyph%npts ))
 	!glyph%flags = 0 ! TODO: initializing shouldn't be required if we read everything correctly
 
-	j = 0
-	do while (j < glyph%npts)
-		j = j + 1
+	i = 0
+	do while (i < glyph%npts)
+		i = i + 1
 
 		flag = read_u8(iu)
-		glyph%flags(j) = flag
+		glyph%flags(i) = flag
 
 		!print '(a,z2)', 'flag = ', flag
 
@@ -441,9 +441,9 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			nrepeat = read_u8(iu)
 			!print *, 'nrepeat = ', nrepeat
 
-			do k = 1, nrepeat
-				j = j + 1
-				glyph%flags(j) = flag
+			do j = 1, nrepeat
+				i = i + 1
+				glyph%flags(i) = flag
 			end do
 
 		end if
@@ -455,11 +455,11 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	allocate(glyph%x(2, glyph%npts))
 	is_byte = X_IS_BYTE
 	delta   = X_DELTA
-	do k = 1, 2  ! x/y loop
+	do j = 1, 2  ! x/y loop
 
 		pos = 0
-		do j = 1, glyph%npts
-			flag = glyph%flags(j)
+		do i = 1, glyph%npts
+			flag = glyph%flags(i)
 
 			if (iand(flag, is_byte) /= 0) then
 				if (iand(flag, delta) /= 0) then
@@ -477,7 +477,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			!	! pos is unchanged
 			end if
 
-			glyph%x(k,j) = pos
+			glyph%x(j,i) = pos
 		end do
 
 		is_byte = Y_IS_BYTE ! TODO: nasty hack
@@ -491,20 +491,22 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!return
 
 	! Print scilab source code for plotting
-	k0 = 1
-	do j = 1, glyph%ncontours
+	j0 = 1
+	do i = 1, glyph%ncontours
 		print *, 'x = ['
 
-		do k = k0, glyph%end_pts(j) + 1
-			print '(2i8)', glyph%x(:,k)
+		do j = j0, glyph%end_pts(i) + 1
+			print '(2i8)', glyph%x(:,j)
 		end do
-		print '(2i8)', glyph%x(:,k0)
+		print '(2i8)', glyph%x(:,j0)
 		print *, ']'
 		print '(a,i0,a)', 'plot(x(:,1) + 1000 * ', iglyph, ', x(:,2))'
 		! ^ totally arbitrary bad kerning
 
-		k0 = glyph%end_pts(j) + 2
+		j0 = glyph%end_pts(i) + 2
 	end do
+	print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,glyph%npts) ,' + 1000 * ', &
+		iglyph, ', ', glyph%x(2,glyph%npts), ', "o")'
 
 end function read_glyph
 
@@ -575,7 +577,7 @@ function read_ttf_table(iu) result(table)
 	!print '(a,z0)', ' final csum   = ', table%checksum
 
 	if (sum /= table%checksum) then
-		write(*,*) error//'bad checksum for table ', table%tag
+		write(*,*) ERROR//'bad checksum for table ', table%tag
 		call exit(EXIT_FAILURE)
 	end if
 

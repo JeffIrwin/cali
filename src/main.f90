@@ -69,7 +69,7 @@ program main
 	!print *, 'tag 1       = ', ttf%tables(1)%tag
 	!print *, 'glyf table  = ', ttf%get_table('glyf')
 
-	write(*,*) fg_bright_green//'Finished cali'//color_reset
+	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)
 	call exit(EXIT_SUCCESS)
 
