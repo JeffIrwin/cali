@@ -56,6 +56,9 @@ program main
 
 	implicit none
 
+	integer :: i
+	integer, allocatable :: iglyphs(:)
+
 	type(args_t) :: args
 	type(ttf_t)  :: ttf
 
@@ -65,12 +68,14 @@ program main
 	args = parse_args()
 	ttf  = read_ttf(args%ttf_file)
 
-	call draw_glyph(ttf%glyphs(37))  ! 'B'
+	!call draw_glyph(ttf%glyphs(37))  ! 'B'
 	!call draw_glyph(ttf%glyphs(69))  ! 'b'
+	!call draw_glyph(ttf%glyphs(74))  ! 'g'
 
-	!print *, 'num_tables  = ', ttf%num_tables
-	!print *, 'tag 1       = ', ttf%tables(1)%tag
-	!print *, 'glyf table  = ', ttf%get_table('glyf')
+	iglyphs = [83, 82, 74]
+	do i = 1, size(iglyphs)
+		call draw_glyph(ttf%glyphs( iglyphs(i) ), 1100 * i)
+	end do
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)

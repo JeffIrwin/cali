@@ -501,9 +501,13 @@ end function read_glyph
 
 !===============================================================================
 
-subroutine draw_glyph(glyph)
+subroutine draw_glyph(glyph, x0)
+
+	! Print scilab source code for plotting
 
 	type(glyph_t), intent(in) :: glyph
+
+	integer, intent(in) :: x0  ! translation.  TODO: scale
 
 	!********
 
@@ -512,58 +516,31 @@ subroutine draw_glyph(glyph)
 	integer :: i, j, j0, jp, jn, jnn, start_pt, a(ND), b(ND), c(ND), it
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 2), parameter :: ON_CURVE = 1
-	integer, parameter :: iglyph = 0 ! TODO: kerning
+	integer(kind = 8), allocatable :: x(:,:)
 	integer, parameter :: NSPLINE = 10
 
 	if (glyph%ncontours < 0) then
-		write(*,*) ERROR// &
-			'compound glyphs are not supported for glyph index ', iglyph
+		write(*,*) ERROR//'compound glyphs are not supported'
 		call exit(EXIT_FAILURE)
 	end if
 
-	print *, 'npts      = ', glyph%npts
-	print *, 'ncontours = ', glyph%ncontours
-	print *, 'end_pts   = ', glyph%end_pts
+	!print *, 'npts      = ', glyph%npts
+	!print *, 'ncontours = ', glyph%ncontours
+	!print *, 'end_pts   = ', glyph%end_pts
 	!print *, 'x = '
 	!print '(2i6)', glyph%x
 
-	! Print scilab source code for plotting
-
-!	j0 = 1
-!	do i = 1, glyph%ncontours
-!		print *, 'x = ['
-!
-!		do j = j0, glyph%end_pts(i) + 1
-!			print '(2i8)', glyph%x(:,j)
-!		end do
-!		print '(2i8)', glyph%x(:,j0)
-!		print *, ']'
-!		print '(a,i0,a)', 'plot(x(:,1) + 1000 * ', iglyph, ', x(:,2))'
-!		! ^ totally arbitrary bad kerning
-!
-!		j0 = glyph%end_pts(i) + 2
-!	end do
-!
-!	do i = 1, glyph%npts
-!		flag = glyph%flags(i)
-!
-!		if (iand(flag, ON_CURVE) /= 0) then
-!			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
-!				iglyph, ', ', glyph%x(2,i), ', "s")'
-!		else
-!			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
-!				iglyph, ', ', glyph%x(2,i), ', "x")'
-!		end if
-!
-!	end do
-!	return
+	x = glyph%x
+	do i = 1, glyph%npts
+		x(1,i) = x(1,i) + x0
+	end do
 
 	start_pt = 1
 	do i = 1, glyph%ncontours
 
 		do j = start_pt, glyph%end_pts(i) + 1
-			!print '(2i8)', glyph%x(:,j)
-			!print *, 'j, x = ', j, glyph%x(:,j)
+			!print '(2i8)', x(:,j)
+			!print *, 'j, x = ', j, x(:,j)
 
 			! Next point, which might loop back to beginning of contour
 			if (j == glyph%end_pts(i) + 1) then
@@ -579,9 +556,8 @@ subroutine draw_glyph(glyph)
 			    iand(flagn, ON_CURVE) /= 0) then
 
 				! Straight line segment from j to jn
-				print '(a,i0,a,i0,a,i0,a,i0,a,i0,a)', 'plot([', &
-					glyph%x(1,j), ', ', glyph%x(1,jn) , '] + 1000 * ', &
-					iglyph, ', [', glyph%x(2,j), ', ', glyph%x(2,jn) , '])'
+				print '(a,i0,a,i0,a,i0,a,i0,a)', 'plot([', &
+					x(1,j), ', ', x(1,jn) , '], [', x(2,j), ', ', x(2,jn) , '])'
 
 			else if (iand(flag , ON_CURVE) == 0) then
 
@@ -591,23 +567,27 @@ subroutine draw_glyph(glyph)
 				! Current point j is off-curve
 
 				! Previous point
-				jp = j - 1 ! TODO: handle beginning of contour case
+				if (j == start_pt) then
+					jp = glyph%end_pts(i) + 1
+				else
+					jp = j - 1
+				end if
 				flagp = glyph%flags(jp)
 
 				! middle control point
-				b = glyph%x(:,j)
+				b = x(:,j)
 
 				! a is start point on curve
 				if (iand(flagp, ON_CURVE) /= 0) then
-					a = glyph%x(:,jp)
+					a = x(:,jp)
 				else
-					!a = 0.5 * (glyph%x(:,jp-1) + glyph%x(:,jp)) ! TODO: wrap
-					a = 0.5 * (glyph%x(:,j) + glyph%x(:,jp)) ! TODO: wrap
+					!a = 0.5 * (x(:,jp-1) + x(:,jp)) ! TODO: wrap
+					a = 0.5 * (x(:,j) + x(:,jp)) ! TODO: wrap
 				end if
 
 				! c is end point on curve
 				if (iand(flagn, ON_CURVE) /= 0) then
-					c = glyph%x(:,jn)
+					c = x(:,jn)
 					!print *, 'jn = ', jn
 					!print *, 'c = ', c
 				else
@@ -621,8 +601,8 @@ subroutine draw_glyph(glyph)
 					!	jnn = j + 2
 					!end if
 
-					!c = 0.5 * (glyph%x(:,jnn) + glyph%x(:,jn))
-					c = 0.5 * (glyph%x(:,j) + glyph%x(:,jn))
+					!c = 0.5 * (x(:,jnn) + x(:,jn))
+					c = 0.5 * (x(:,j) + x(:,jn))
 
 					!print *, 'c = ', c
 
@@ -632,13 +612,11 @@ subroutine draw_glyph(glyph)
 				do it = 0, NSPLINE
 					t = 1.d0 * it / NSPLINE
 
-!bezier2(a, b, c, t) = (1-t)**2 * a + 2*(1-t)*t * b + t**2 * c
-					print *, (1.0-t)**2 * a + 2.0*(1.0-t)*t * b + t**2 * c
+					print *, (1-t)**2 * a + 2*(1-t)*t * b + t**2 * c
 
 				end do
 				print *, ']'
-				print '(a,i0,a)', 'plot(x(:,1) + 1000 * ', iglyph, ', x(:,2))'
-				! ^ totally arbitrary bad kerning
+				print '(a)', 'plot(x(:,1), x(:,2))'
 
 			end if
 
