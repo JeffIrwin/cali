@@ -5,12 +5,20 @@ module cali_m
 
 	implicit none
 
-	integer, parameter :: &
-		EXIT_SUCCESS = 0, &
+	integer, parameter ::  &
+		EXIT_SUCCESS =  0, &
 		EXIT_FAILURE = -1, &
-		ND       = 2, &
-		SEEK_REL = 1, &
-		SEEK_ABS = 0
+		ND           =  2, &
+		SEEK_REL     =  1, &
+		SEEK_ABS     =  0
+
+	integer(kind = 2), parameter :: &
+		ON_CURVE   = int(b'00000001'), &
+		X_IS_BYTE  = int(b'00000010'), &
+		!Y_IS_BYTE = int(b'00000100'), &
+		REPEAT     = int(b'00001000'), &
+		X_DELTA    = int(b'00010000')!,  &
+		!Y_DELTA   = int(b'00100000')
 
 	character, parameter :: &
 			ESC             = char(27)
@@ -94,7 +102,7 @@ function read_fixed(unit) result(fixed)
 	integer(kind = 4) :: i32
 
 	read(unit) i32
-	fixed = i32 * (2.d0 ** -16)
+	fixed = i32 * (2.d0 ** (-16))
 
 end function read_fixed
 
@@ -217,8 +225,8 @@ function read_ttf(filename) result(ttf)
 
 	!********
 
-	integer :: i, io, iu
-	integer(kind = 8) :: head, maxp, sum, filesize
+	integer :: io, iu
+	integer(kind = 8) :: i, head, maxp, sum, filesize
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -244,7 +252,7 @@ function read_ttf(filename) result(ttf)
 	!do i = 1, (filesize + 3) / 4
 		sum = sum + read_u32(iu)
 	end do
-	sum = iand(sum, z'ffffffff')
+	sum = iand(sum, int(z'ffffffff',8))
 
 	if (sum /= int(z'b1b0afba', 8)) then
 		write(*,*) ERROR//'bad checksum for head table'
@@ -254,7 +262,7 @@ function read_ttf(filename) result(ttf)
 	!print *, 'verified head checksum'
 
 	ttf%scalar_type  = read_u32(iu)
-	ttf%ntables   = read_u16(iu)
+	ttf%ntables      = read_u16(iu)
 	ttf%search_range = read_u16(iu)
 	ttf%entry_select = read_u16(iu)
 	ttf%range_shift  = read_u16(iu)
@@ -360,7 +368,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	! Read glyph index iglyph from file unit iu in the ttf struct
 
-	integer, intent(in) :: iu, iglyph
+	integer, intent(in) :: iu
+	integer(kind = 8), intent(in) :: iglyph
 
 	type(ttf_t), intent(in) :: ttf
 
@@ -368,15 +377,9 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	!********
 
-	integer :: i, j, j0, pos
-	integer(kind = 8) :: offset
+	integer :: j
+	integer(kind = 8) :: i, offset, pos
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
-	integer(kind = 2), parameter :: &
-		X_IS_BYTE = 2, &
-		!Y_IS_BYTE = 4, &
-		REPEAT    = 8, &
-		X_DELTA   = 16!,  &
-		!Y_DELTA = 32
 
 	if (ttf%index2loc_fmt == 0) then
 		call fseek(iu, ttf%loca_offset + 2 * iglyph, SEEK_ABS)
@@ -430,6 +433,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	glyph%npts = maxval( glyph%end_pts ) + 1  ! why is this off by one?
 	!print *, 'npts = ', glyph%npts
 
+	! Read flags
+
 	allocate(glyph%flags( glyph%npts ))
 	!glyph%flags = 0 ! TODO: initializing shouldn't be required if we read everything correctly
 
@@ -437,16 +442,17 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	do while (i < glyph%npts)
 		i = i + 1
 
-		flag = read_u8(iu)
+		flag = int(read_u8(iu), 2)
 		glyph%flags(i) = flag
 
 		!print '(a,z2)', 'flag = ', flag
 
 		! TODO: unpack flags into individual booleans like onCurve etc.  Make
-		! sure it is unpacked for the repeated flags too
+		! sure it is unpacked for the repeated flags too?  I'm just unpacking on
+		! the fly, e.g. in draw_glyph().  Maybe that's better
 
 		if (iand(flag, REPEAT) /= 0) then
-			nrepeat = read_u8(iu)
+			nrepeat = int(read_u8(iu), 2)
 			!print *, 'nrepeat = ', nrepeat
 
 			do j = 1, nrepeat
@@ -459,12 +465,12 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	end do
 	!print *, 'flags = ', glyph%flags
 
-	! Read x *and* y coords
-	allocate(glyph%x(2, glyph%npts))
-	do j = 1, 2  ! x/y loop
+	! Read coordinates
+	allocate(glyph%x(ND, glyph%npts))
+	do j = 1, ND  ! x/y loop
 
-		is_byte = j * X_IS_BYTE
-		delta   = j * X_DELTA
+		is_byte = int(j * X_IS_BYTE, 2)
+		delta   = int(j * X_DELTA  , 2)
 
 		pos = 0
 		do i = 1, glyph%npts
@@ -480,7 +486,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				end if
 
 			! Fortran doesn't have bitwise not, so we use ieor with all f's
-			else if (iand( ieor(flag,z'ffff'), delta ) /= 0) then
+			else if (iand( ieor(int(flag,4), int(z'ffff',4)), int(delta,4) ) /= 0) then
 				!print *, '+ i16'
 				pos = pos + read_i16(iu)
 
@@ -513,9 +519,8 @@ subroutine draw_glyph(glyph, x0)
 
 	double precision :: t
 
-	integer :: i, j, j0, jp, jn, jnn, start_pt, a(ND), b(ND), c(ND), it
 	integer(kind = 2) :: flag, flagn, flagp
-	integer(kind = 2), parameter :: ON_CURVE = 1
+	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND), it
 	integer(kind = 8), allocatable :: x(:,:)
 	integer, parameter :: NSPLINE = 10
 
@@ -561,8 +566,16 @@ subroutine draw_glyph(glyph, x0)
 
 			else if (iand(flag , ON_CURVE) == 0) then
 
-				! Quadratic Bezier spline with point j as the middle control
-				! point
+				! Quadratic Bezier spline with point index j as the middle
+				! control point:
+				!
+				!     x(:,j-1), x(:,j), x(:,j+1)
+				!     a       , b     , c
+				!
+				! In the general case, j-1 and j+1 may wrap around the start/end
+				! of the contour.  Further, j-1 or j+1 may not be explicitly
+				! defined but might be an implicit midpoint between succesive
+				! off-curve points.  There is logic to handle this below.
 
 				! Current point j is off-curve
 
@@ -574,38 +587,21 @@ subroutine draw_glyph(glyph, x0)
 				end if
 				flagp = glyph%flags(jp)
 
-				! middle control point
+				! middle control point off curve
 				b = x(:,j)
 
 				! a is start point on curve
 				if (iand(flagp, ON_CURVE) /= 0) then
 					a = x(:,jp)
 				else
-					!a = 0.5 * (x(:,jp-1) + x(:,jp)) ! TODO: wrap
-					a = 0.5 * (x(:,j) + x(:,jp)) ! TODO: wrap
+					a = int(0.5d0 * (x(:,j) + x(:,jp)))
 				end if
 
 				! c is end point on curve
 				if (iand(flagn, ON_CURVE) /= 0) then
 					c = x(:,jn)
-					!print *, 'jn = ', jn
-					!print *, 'c = ', c
 				else
-
-					!! TODO: not used
-					!if (j == glyph%end_pts(i)) then
-					!	jnn = start_pt + 1
-					!else if (j == glyph%end_pts(i) + 1) then
-					!	jnn = start_pt + 2
-					!else
-					!	jnn = j + 2
-					!end if
-
-					!c = 0.5 * (x(:,jnn) + x(:,jn))
-					c = 0.5 * (x(:,j) + x(:,jn))
-
-					!print *, 'c = ', c
-
+					c = int(0.5d0 * (x(:,j) + x(:,jn)))
 				end if
 
 				print *, 'x = ['
@@ -619,7 +615,6 @@ subroutine draw_glyph(glyph, x0)
 				print '(a)', 'plot(x(:,1), x(:,2))'
 
 			end if
-
 		end do
 
 		start_pt = glyph%end_pts(i) + 2
@@ -689,7 +684,7 @@ function read_ttf_table(iu) result(table)
 	end do
 	!print '(a,z0)', '  sum   = ', sum
 
-	sum = iand(sum, z'ffffffff')
+	sum = iand(sum, int(z'ffffffff',8))
 	!print '(a,z0)', ' final  sum   = ', sum
 	!print '(a,z0)', ' final csum   = ', table%checksum
 
@@ -709,10 +704,14 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - use quadratic Bezier splines instead of straight line segments
+! - fix compiler warnings
 ! - visualize in Fortran, not scilab.  export ppm file
+! - testing
+!   * cover multiple fonts
 ! - fill-in contours instead of just outlines
 ! - parse cmap to get unicode (or ascii) to glyph index mapping
 ! - compound glyphs
 ! - typeset multiple letters and maybe multiple lines
+!   * proper kerning
+! - anti-aliasing?  doubtful
 
