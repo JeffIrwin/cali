@@ -15,10 +15,10 @@ module cali_m
 	integer(kind = 2), parameter :: &
 		ON_CURVE   = int(b'00000001'), &
 		X_IS_BYTE  = int(b'00000010'), &
-		!Y_IS_BYTE = int(b'00000100'), &
+		!Y_IS_BYTE = int(b'00000100'), &  ! 2 * X_IS_BYTE
 		REPEAT     = int(b'00001000'), &
 		X_DELTA    = int(b'00010000')!,  &
-		!Y_DELTA   = int(b'00100000')
+		!Y_DELTA   = int(b'00100000')     ! 2 * X_DELTA
 
 	character, parameter :: &
 			ESC             = char(27)
@@ -92,7 +92,8 @@ end function read_str
 
 function read_fixed(unit) result(fixed)
 
-	! TODO: error-handling for all IO fns?
+	! TODO: error-handling for all IO fns?  If the error-handling is just 'call
+	! exit()' then there's no point
 
 	integer, intent(in) :: unit
 	double precision :: fixed
@@ -178,7 +179,7 @@ function read_u32(unit) result(u32)
 	integer(kind = 4) :: i32
 
 	read(unit) i32
-	u32 = iand(int(i32,8), int(z'ffffffff',8)) ! TODO: make macro to shorten z8 casting syntax
+	u32 = iand(int(i32,8), int(z'ffffffff',8))
 
 end function read_u32
 
@@ -210,7 +211,7 @@ function get_table(ttf, tag) result(table_id)
 		if (ttf%tables(table_id)%tag == tag) return
 	end do
 
-	! TODO: call exit?
+	! TODO: error handling
 	table_id = -1
 
 end function get_table
@@ -239,16 +240,16 @@ function read_ttf(filename) result(ttf)
 
 	! Verify head table checksum (whole file)
 
+	inquire(file = filename, size = filesize)
+	!print *, 'filesize = ', filesize
+
 	! TODO: the issue with corbeli.ttf is that its number of bytes is not
 	! divisible by 4, so this reads past the end of file on the last 4-byte
 	! word.  It should be fixable by reading up until the last word, then
 	! reading the last 1-4 bytes and padding it with zeros
 
-	inquire(file = filename, size = filesize)
-	!print *, 'filesize = ', filesize
-
 	sum = 0
-	do i = 1, filesize / 4 ! TODO?
+	do i = 1, filesize / 4
 	!do i = 1, (filesize + 3) / 4
 		sum = sum + read_u32(iu)
 	end do
@@ -418,8 +419,6 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	! Read simple glyph
 
 	allocate(glyph%end_pts( glyph%ncontours ))
-	!glyph%end_pts = 0
-
 	do i = 1, glyph%ncontours
 		glyph%end_pts(i) = read_u16(iu)
 	end do
@@ -429,27 +428,20 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	! Skip instructions for now. TODO: read and save
 	glyph%ninst = read_u16(iu)
 	call fseek(iu, glyph%ninst, SEEK_REL)
+	!print *, 'ninst = ', glyph%ninst
 
 	glyph%npts = maxval( glyph%end_pts ) + 1  ! why is this off by one?
 	!print *, 'npts = ', glyph%npts
 
 	! Read flags
-
 	allocate(glyph%flags( glyph%npts ))
-	!glyph%flags = 0 ! TODO: initializing shouldn't be required if we read everything correctly
-
 	i = 0
 	do while (i < glyph%npts)
 		i = i + 1
 
 		flag = int(read_u8(iu), 2)
 		glyph%flags(i) = flag
-
 		!print '(a,z2)', 'flag = ', flag
-
-		! TODO: unpack flags into individual booleans like onCurve etc.  Make
-		! sure it is unpacked for the repeated flags too?  I'm just unpacking on
-		! the fly, e.g. in draw_glyph().  Maybe that's better
 
 		if (iand(flag, REPEAT) /= 0) then
 			nrepeat = int(read_u8(iu), 2)
@@ -513,7 +505,7 @@ subroutine draw_glyph(glyph, x0)
 
 	type(glyph_t), intent(in) :: glyph
 
-	integer, intent(in) :: x0  ! translation.  TODO: scale
+	integer, intent(in) :: x0  ! translation.  TODO: y translation and scale
 
 	!********
 
@@ -560,14 +552,14 @@ subroutine draw_glyph(glyph, x0)
 			if (iand(flag , ON_CURVE) /= 0 .and. &
 			    iand(flagn, ON_CURVE) /= 0) then
 
-				! Straight line segment from j to jn
+				! Draw a straight line segment from j to jn
 				print '(a,i0,a,i0,a,i0,a,i0,a)', 'plot([', &
 					x(1,j), ', ', x(1,jn) , '], [', x(2,j), ', ', x(2,jn) , '])'
 
 			else if (iand(flag , ON_CURVE) == 0) then
 
-				! Quadratic Bezier spline with point index j as the middle
-				! control point:
+				! Draw a quadratic Bezier spline with point index j as the
+				! middle control point:
 				!
 				!     x(:,j-1), x(:,j), x(:,j+1)
 				!     a       , b     , c
@@ -644,6 +636,8 @@ end function ldt2str
 
 function read_ttf_table(iu) result(table)
 
+	! Read table metadata from the header of the ttf file
+
 	integer, intent(in) :: iu
 
 	type(ttf_table) :: table
@@ -704,8 +698,9 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - fix compiler warnings
 ! - visualize in Fortran, not scilab.  export ppm file
+!   * support colors
+!   * draw rectangles too for background (or highlighting)
 ! - testing
 !   * cover multiple fonts
 ! - fill-in contours instead of just outlines
@@ -714,4 +709,5 @@ end module cali_m
 ! - typeset multiple letters and maybe multiple lines
 !   * proper kerning
 ! - anti-aliasing?  doubtful
+! - vector output format, e.g. ps, pdf, or svg?
 
