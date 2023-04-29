@@ -8,6 +8,7 @@ module cali_m
 	integer, parameter :: &
 		EXIT_SUCCESS = 0, &
 		EXIT_FAILURE = -1, &
+		ND       = 2, &
 		SEEK_REL = 1, &
 		SEEK_ABS = 0
 
@@ -506,10 +507,12 @@ subroutine draw_glyph(glyph)
 
 	!********
 
-	integer :: i, j, j0
-	integer(kind = 2) :: flag
+	double precision :: t
+
+	integer :: i, j, j0, jp, jn, start_pt, a(ND), b(ND), c(ND), it
+	integer(kind = 2) :: flag, flagn, flagp
 	integer, parameter :: iglyph = 0 ! TODO: kerning
-	integer, parameter :: ON_CURVE = 1
+	integer, parameter :: ON_CURVE = 1, NSPLINE = 10
 
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR// &
@@ -517,39 +520,111 @@ subroutine draw_glyph(glyph)
 		call exit(EXIT_FAILURE)
 	end if
 
+	print *, 'npts      = ', glyph%npts
+	print *, 'ncontours = ', glyph%ncontours
+	print *, 'end_pts   = ', glyph%end_pts
+
 	! Print scilab source code for plotting
-	j0 = 1
+
+!	j0 = 1
+!	do i = 1, glyph%ncontours
+!		print *, 'x = ['
+!
+!		do j = j0, glyph%end_pts(i) + 1
+!			print '(2i8)', glyph%x(:,j)
+!		end do
+!		print '(2i8)', glyph%x(:,j0)
+!		print *, ']'
+!		print '(a,i0,a)', 'plot(x(:,1) + 1000 * ', iglyph, ', x(:,2))'
+!		! ^ totally arbitrary bad kerning
+!
+!		j0 = glyph%end_pts(i) + 2
+!	end do
+!
+!	do i = 1, glyph%npts
+!		flag = glyph%flags(i)
+!
+!		if (iand(flag, ON_CURVE) /= 0) then
+!			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
+!				iglyph, ', ', glyph%x(2,i), ', "s")'
+!		else
+!			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
+!				iglyph, ', ', glyph%x(2,i), ', "x")'
+!		end if
+!
+!	end do
+!	return
+
+	start_pt = 1
 	do i = 1, glyph%ncontours
-		print *, 'x = ['
 
-		do j = j0, glyph%end_pts(i) + 1
-			print '(2i8)', glyph%x(:,j)
+		do j = start_pt, glyph%end_pts(i) + 1
+			!print '(2i8)', glyph%x(:,j)
+
+			! Next point, which might loop back to beginning of contour
+			if (j == glyph%end_pts(i) + 1) then
+				jn = start_pt
+			else
+				jn = j + 1
+			end if
+
+			flag  = glyph%flags(j )
+			flagn = glyph%flags(jn)
+
+			if (iand(flag , ON_CURVE) /= 0 .and. &
+			    iand(flagn, ON_CURVE) /= 0) then
+
+				! Straight line segment from j to jn
+				print '(a,i0,a,i0,a,i0,a,i0,a,i0,a)', 'plot([', &
+					glyph%x(1,j), ', ', glyph%x(1,jn) , '] + 1000 * ', &
+					iglyph, ', [', glyph%x(2,j), ', ', glyph%x(2,jn) , '])'
+
+			else if (iand(flag , ON_CURVE) == 0) then
+
+				! Quadratic Bezier spline with point j as the middle control
+				! point
+
+				! Current point j is off-curve
+
+				! Previous point
+				jp = j - 1 ! TODO: handle beginning of contour case
+				flagp = glyph%flags(jp)
+
+				! middle control point
+				b = glyph%x(:,j)
+
+				! a is start point on curve
+				if (iand(flagp, ON_CURVE) /= 0) then
+					a = glyph%x(:,jp)
+				else
+					a = 0.5 * (glyph%x(:,jp-1) + glyph%x(:,jp)) ! TODO: wrap
+				end if
+
+				! c is end point on curve
+				if (iand(flagn, ON_CURVE) /= 0) then
+					c = glyph%x(:,jn)
+				else
+					c = 0.5 * (glyph%x(:,jn+1) + glyph%x(:,jn)) ! TODO: wrap
+				end if
+
+				print *, 'x = ['
+				do it = 0, NSPLINE
+					t = 1.d0 * it / NSPLINE
+
+!bezier2(a, b, c, t) = (1-t)**2 * a + 2*(1-t)*t * b + t**2 * c
+					print *, (1.0-t)**2 * a + 2.0*(1.0-t)*t * b + t**2 * c
+
+				end do
+				print *, ']'
+				print '(a,i0,a)', 'plot(x(:,1) + 1000 * ', iglyph, ', x(:,2))'
+				! ^ totally arbitrary bad kerning
+
+			end if
+
 		end do
-		print '(2i8)', glyph%x(:,j0)
-		print *, ']'
-		print '(a,i0,a)', 'plot(x(:,1) + 1000 * ', iglyph, ', x(:,2))'
-		! ^ totally arbitrary bad kerning
 
-		j0 = glyph%end_pts(i) + 2
+		start_pt = glyph%end_pts(i) + 2
 	end do
-
-	do i = 1, glyph%npts
-
-		flag = glyph%flags(i)
-
-		!if (iand(flag, REPEAT) /= 0) then
-		if (iand(flag, ON_CURVE) /= 0) then
-			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
-				iglyph, ', ', glyph%x(2,i), ', "s")'
-		else
-			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
-				iglyph, ', ', glyph%x(2,i), ', "x")'
-		end if
-
-	end do
-
-!	print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,glyph%npts) ,' + 1000 * ', &
-!		iglyph, ', ', glyph%x(2,glyph%npts), ', "o")'
 
 end subroutine draw_glyph
 
