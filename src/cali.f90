@@ -509,10 +509,10 @@ subroutine draw_glyph(glyph)
 
 	double precision :: t
 
-	integer :: i, j, j0, jp, jn, start_pt, a(ND), b(ND), c(ND), it
+	integer :: i, j, j0, jp, jn, jnn, start_pt, a(ND), b(ND), c(ND), it
 	integer(kind = 2) :: flag, flagn, flagp
-	integer, parameter :: iglyph = 0 ! TODO: kerning
 	integer(kind = 2), parameter :: ON_CURVE = 1
+	integer, parameter :: iglyph = 0 ! TODO: kerning
 	integer, parameter :: NSPLINE = 10
 
 	if (glyph%ncontours < 0) then
@@ -524,6 +524,8 @@ subroutine draw_glyph(glyph)
 	print *, 'npts      = ', glyph%npts
 	print *, 'ncontours = ', glyph%ncontours
 	print *, 'end_pts   = ', glyph%end_pts
+	!print *, 'x = '
+	!print '(2i6)', glyph%x
 
 	! Print scilab source code for plotting
 
@@ -561,6 +563,7 @@ subroutine draw_glyph(glyph)
 
 		do j = start_pt, glyph%end_pts(i) + 1
 			!print '(2i8)', glyph%x(:,j)
+			!print *, 'j, x = ', j, glyph%x(:,j)
 
 			! Next point, which might loop back to beginning of contour
 			if (j == glyph%end_pts(i) + 1) then
@@ -598,14 +601,31 @@ subroutine draw_glyph(glyph)
 				if (iand(flagp, ON_CURVE) /= 0) then
 					a = glyph%x(:,jp)
 				else
-					a = 0.5 * (glyph%x(:,jp-1) + glyph%x(:,jp)) ! TODO: wrap
+					!a = 0.5 * (glyph%x(:,jp-1) + glyph%x(:,jp)) ! TODO: wrap
+					a = 0.5 * (glyph%x(:,j) + glyph%x(:,jp)) ! TODO: wrap
 				end if
 
 				! c is end point on curve
 				if (iand(flagn, ON_CURVE) /= 0) then
 					c = glyph%x(:,jn)
+					!print *, 'jn = ', jn
+					!print *, 'c = ', c
 				else
-					c = 0.5 * (glyph%x(:,jn+1) + glyph%x(:,jn)) ! TODO: wrap
+
+					!! TODO: not used
+					!if (j == glyph%end_pts(i)) then
+					!	jnn = start_pt + 1
+					!else if (j == glyph%end_pts(i) + 1) then
+					!	jnn = start_pt + 2
+					!else
+					!	jnn = j + 2
+					!end if
+
+					!c = 0.5 * (glyph%x(:,jnn) + glyph%x(:,jn))
+					c = 0.5 * (glyph%x(:,j) + glyph%x(:,jn))
+
+					!print *, 'c = ', c
+
 				end if
 
 				print *, 'x = ['
