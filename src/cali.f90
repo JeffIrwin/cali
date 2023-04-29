@@ -512,7 +512,8 @@ subroutine draw_glyph(glyph)
 	integer :: i, j, j0, jp, jn, start_pt, a(ND), b(ND), c(ND), it
 	integer(kind = 2) :: flag, flagn, flagp
 	integer, parameter :: iglyph = 0 ! TODO: kerning
-	integer, parameter :: ON_CURVE = 1, NSPLINE = 10
+	integer(kind = 2), parameter :: ON_CURVE = 1
+	integer, parameter :: NSPLINE = 10
 
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR// &
