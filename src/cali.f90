@@ -133,7 +133,7 @@ function read_u8(unit) result(u8)
 	integer(kind = 1) :: i8
 
 	read(unit) i8
-	u8 = iand(int(i8,2), int(z'ff',2))
+	u8 = iand(int(z'ff',2), i8)
 
 end function read_u8
 
@@ -160,7 +160,7 @@ function read_u16(unit) result(u16)
 	integer(kind = 2) :: i16
 
 	read(unit) i16
-	u16 = iand(int(i16,4), int(z'ffff',4))
+	u16 = iand(int(z'ffff',4), i16)
 
 end function read_u16
 
@@ -179,7 +179,7 @@ function read_u32(unit) result(u32)
 	integer(kind = 4) :: i32
 
 	read(unit) i32
-	u32 = iand(int(i32,8), int(z'ffffffff',8))
+	u32 = iand(int(z'ffffffff',8), i32)
 
 end function read_u32
 
