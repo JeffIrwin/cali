@@ -13,3 +13,5 @@ Steve Hanov's blog on parsing ttf files in JavaScript:  http://stevehanov.ca/blo
 
 Apple documentation on ttf glyf (glyph) table:  https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6glyf.html
 
+Freya Holmer: https://www.youtube.com/watch?v=jvPPXbo87ds
+

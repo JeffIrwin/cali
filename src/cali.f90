@@ -402,10 +402,13 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!print *, "ymax = ", glyph%ymax
 
 	if (glyph%ncontours < 0) then
-		! TODO: read compound glyph.  Maybe we could make this not a fatal
-		! error, unless you try to *draw* a compound glyph which wasn't loaded
-		write(*,*) ERROR//'compound glyphs are not supported'
-		call exit(EXIT_FAILURE)
+		return
+
+		!! TODO: read compound glyph.  Maybe we could make this not a fatal
+		!! error, unless you try to *draw* a compound glyph which wasn't loaded
+		!write(*,*) ERROR// &
+		!	'compound glyphs are not supported for glyph index ', iglyph
+		!call exit(EXIT_FAILURE)
 	end if
 
 	! Read simple glyph
@@ -504,7 +507,15 @@ subroutine draw_glyph(glyph)
 	!********
 
 	integer :: i, j, j0
+	integer(kind = 2) :: flag
 	integer, parameter :: iglyph = 0 ! TODO: kerning
+	integer, parameter :: ON_CURVE = 1
+
+	if (glyph%ncontours < 0) then
+		write(*,*) ERROR// &
+			'compound glyphs are not supported for glyph index ', iglyph
+		call exit(EXIT_FAILURE)
+	end if
 
 	! Print scilab source code for plotting
 	j0 = 1
@@ -521,8 +532,24 @@ subroutine draw_glyph(glyph)
 
 		j0 = glyph%end_pts(i) + 2
 	end do
-	print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,glyph%npts) ,' + 1000 * ', &
-		iglyph, ', ', glyph%x(2,glyph%npts), ', "o")'
+
+	do i = 1, glyph%npts
+
+		flag = glyph%flags(i)
+
+		!if (iand(flag, REPEAT) /= 0) then
+		if (iand(flag, ON_CURVE) /= 0) then
+			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
+				iglyph, ', ', glyph%x(2,i), ', "s")'
+		else
+			print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,i) , ' + 1000 * ', &
+				iglyph, ', ', glyph%x(2,i), ', "x")'
+		end if
+
+	end do
+
+!	print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,glyph%npts) ,' + 1000 * ', &
+!		iglyph, ', ', glyph%x(2,glyph%npts), ', "o")'
 
 end subroutine draw_glyph
 

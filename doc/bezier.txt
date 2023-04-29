@@ -1,0 +1,25 @@
+
+#======================================
+
+# lerp == linear interpolation
+
+lerp(a, b, t) = a + t * (b - a)
+              = (1 - t) * a + t * b
+
+#======================================
+
+# A quadratic Bezier spline is a lerp of a lerp
+
+bezier2(a, b, c, t)
+	= lerp(lerp(a, b, t), lerp(b, c, t), t)
+	= (1 - t) * lerp(a,b,t) + t * lerp(b,c,t)
+	= (1 - t) * ((1-t)*a + t*b) + t * ((1-t)*b + t*c)
+	= (1-t)**2 * a + (1-t)*t*b + (1-t)*t*b + t**2 * c
+	= (1-t)**2 * a + 2*(1-t)*t * b + t**2 * c
+
+********
+bezier2(a, b, c, t) = (1-t)**2 * a + 2*(1-t)*t * b + t**2 * c
+********
+
+#======================================
+
