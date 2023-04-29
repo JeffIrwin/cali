@@ -343,8 +343,7 @@ function read_ttf(filename) result(ttf)
 	ttf%glyf_offset = ttf%tables( ttf%get_table("glyf") )%offset
 
 	allocate(ttf%glyphs( 0: ttf%nglyphs ))
-	!do i = 0, ttf%nglyphs - 1
-	do i = 74, 74
+	do i = 0, ttf%nglyphs - 1
 		ttf%glyphs(i) = read_glyph(iu, ttf, i)
 	end do
 
@@ -390,7 +389,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!print '(a,z0)', ' glyph offset = ', offset
 
 	glyph%ncontours = read_i16(iu)
-	print *, 'ncontours = ', glyph%ncontours
+	!print *, 'ncontours = ', glyph%ncontours
 
 	glyph%xmin = read_fword(iu)
 	glyph%ymin = read_fword(iu)
@@ -403,7 +402,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!print *, "ymax = ", glyph%ymax
 
 	if (glyph%ncontours < 0) then
-		! TODO: read compound glyph
+		! TODO: read compound glyph.  Maybe we could make this not a fatal
+		! error, unless you try to *draw* a compound glyph which wasn't loaded
 		write(*,*) ERROR//'compound glyphs are not supported'
 		call exit(EXIT_FAILURE)
 	end if
@@ -424,7 +424,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	call fseek(iu, glyph%ninst, SEEK_REL)
 
 	glyph%npts = maxval( glyph%end_pts ) + 1  ! why is this off by one?
-	print *, 'npts = ', glyph%npts
+	!print *, 'npts = ', glyph%npts
 
 	allocate(glyph%flags( glyph%npts ))
 	!glyph%flags = 0 ! TODO: initializing shouldn't be required if we read everything correctly
@@ -493,7 +493,18 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!print *, 'x, y = '
 	!print '(2i6)', glyph%x
 
-	!return
+end function read_glyph
+
+!===============================================================================
+
+subroutine draw_glyph(glyph)
+
+	type(glyph_t), intent(in) :: glyph
+
+	!********
+
+	integer :: i, j, j0
+	integer, parameter :: iglyph = 0 ! TODO: kerning
 
 	! Print scilab source code for plotting
 	j0 = 1
@@ -513,7 +524,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	print '(a,i0,a,i0,a,i0,a)', 'plot(', glyph%x(1,glyph%npts) ,' + 1000 * ', &
 		iglyph, ', ', glyph%x(2,glyph%npts), ', "o")'
 
-end function read_glyph
+end subroutine draw_glyph
 
 !===============================================================================
 
@@ -597,7 +608,6 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - refactor glyph drawing outside of glyph reading fn
 ! - use quadratic Bezier splines instead of straight line segments
 ! - visualize in Fortran, not scilab.  export ppm file
 ! - fill-in contours instead of just outlines

@@ -65,6 +65,8 @@ program main
 	args = parse_args()
 	ttf  = read_ttf(args%ttf_file)
 
+	call draw_glyph(ttf%glyphs(74))
+
 	!print *, 'num_tables  = ', ttf%num_tables
 	!print *, 'tag 1       = ', ttf%tables(1)%tag
 	!print *, 'glyf table  = ', ttf%get_table('glyf')
