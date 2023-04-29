@@ -99,14 +99,33 @@ end function read_fixed
 
 !===============================================================================
 
-function read_i64(unit) result(i64)
+function read_fword(unit) result(fword)
+
+	! This is just an alias for read_i16(), but the ttf docs refer to fword and
+	! i16 as separate types, so we do too
 
 	integer, intent(in) :: unit
-	integer(kind = 8) :: i64
+	integer(kind = 2) :: fword
 
-	read(unit) i64
+	fword = read_i16(unit)
 
-end function read_i64
+end function read_fword
+
+!===============================================================================
+
+function read_u8(unit) result(u8)
+
+	integer, intent(in) :: unit
+	integer(kind = 8) :: u8
+
+	!********
+
+	integer(kind = 1) :: i8
+
+	read(unit) i8
+	u8 = iand(int(i8,2), int(z'ff',2))
+
+end function read_u8
 
 !===============================================================================
 
@@ -121,17 +140,19 @@ end function read_i16
 
 !===============================================================================
 
-function read_fword(unit) result(fword)
-
-	! This is just an alias for read_i16(), but the ttf docs refer to fword and
-	! i16 as separate types, so we do too
+function read_u16(unit) result(u16)
 
 	integer, intent(in) :: unit
-	integer(kind = 2) :: fword
+	integer(kind = 8) :: u16
 
-	fword = read_i16(unit)
+	!********
 
-end function read_fword
+	integer(kind = 2) :: i16
+
+	read(unit) i16
+	u16 = iand(int(i16,4), int(z'ffff',4))
+
+end function read_u16
 
 !===============================================================================
 
@@ -154,35 +175,14 @@ end function read_u32
 
 !===============================================================================
 
-function read_u8(unit) result(u8)
+function read_i64(unit) result(i64)
 
 	integer, intent(in) :: unit
-	integer(kind = 8) :: u8
+	integer(kind = 8) :: i64
 
-	!********
+	read(unit) i64
 
-	integer(kind = 1) :: i8
-
-	read(unit) i8
-	u8 = iand(int(i8,2), int(z'ff',2)) ! TODO: simplify? verify CI results
-
-end function read_u8
-
-!===============================================================================
-
-function read_u16(unit) result(u16)
-
-	integer, intent(in) :: unit
-	integer(kind = 8) :: u16
-
-	!********
-
-	integer(kind = 2) :: i16
-
-	read(unit) i16
-	u16 = iand(i16, z'ffff')
-
-end function read_u16
+end function read_i64
 
 !===============================================================================
 
@@ -344,7 +344,7 @@ function read_ttf(filename) result(ttf)
 
 	allocate(ttf%glyphs( 0: ttf%nglyphs ))
 	!do i = 0, ttf%nglyphs - 1
-	do i = 74, 74!80
+	do i = 74, 74
 		ttf%glyphs(i) = read_glyph(iu, ttf, i)
 	end do
 
@@ -371,8 +371,12 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	integer :: i, j, j0, pos
 	integer(kind = 8) :: offset
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
-	integer(kind = 2), parameter :: X_IS_BYTE = 2, Y_IS_BYTE = 4, &
-		REPEAT = 8, X_DELTA = 16, Y_DELTA = 32
+	integer(kind = 2), parameter :: &
+		X_IS_BYTE = 2, &
+		!Y_IS_BYTE = 4, &
+		REPEAT    = 8, &
+		X_DELTA   = 16!,  &
+		!Y_DELTA = 32
 
 	if (ttf%index2loc_fmt == 0) then
 		call fseek(iu, ttf%loca_offset + 2 * iglyph, SEEK_ABS)
@@ -385,7 +389,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	call fseek(iu, offset, SEEK_ABS)
 	!print '(a,z0)', ' glyph offset = ', offset
 
-	glyph%ncontours = read_u16(iu)
+	glyph%ncontours = read_i16(iu)
 	print *, 'ncontours = ', glyph%ncontours
 
 	glyph%xmin = read_fword(iu)
@@ -453,9 +457,10 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	! Read x *and* y coords
 	allocate(glyph%x(2, glyph%npts))
-	is_byte = X_IS_BYTE
-	delta   = X_DELTA
 	do j = 1, 2  ! x/y loop
+
+		is_byte = j * X_IS_BYTE
+		delta   = j * X_DELTA
 
 		pos = 0
 		do i = 1, glyph%npts
@@ -469,9 +474,12 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 					!print *, '- u8'
 					pos = pos - read_u8(iu)
 				end if
+
+			! Fortran doesn't have bitwise not, so we use ieor with all f's
 			else if (iand( ieor(flag,z'ffff'), delta ) /= 0) then
 				!print *, '+ i16'
 				pos = pos + read_i16(iu)
+
 			!else
 			!	print *, 'nop'
 			!	! pos is unchanged
@@ -480,10 +488,6 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			glyph%x(j,i) = pos
 			!print *, 'pos = ', pos
 		end do
-
-		is_byte = Y_IS_BYTE ! TODO: nasty hack
-		delta   = Y_DELTA
-
 	end do
 
 	!print *, 'x, y = '
@@ -591,4 +595,13 @@ end function read_ttf_table
 end module cali_m
 
 !===============================================================================
+
+! TODO:
+! - refactor glyph drawing outside of glyph reading fn
+! - use quadratic Bezier splines instead of straight line segments
+! - visualize in Fortran, not scilab.  export ppm file
+! - fill-in contours instead of just outlines
+! - parse cmap to get unicode (or ascii) to glyph index mapping
+! - compound glyphs
+! - typeset multiple letters and maybe multiple lines
 
