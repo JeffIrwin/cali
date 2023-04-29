@@ -75,7 +75,7 @@ program main
 	iglyphs = [83, 82, 74]            ! pog
 	!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
 	!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
-	iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
+	!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
 
 	do i = 1, size(iglyphs)
 		call draw_glyph(ttf%glyphs( iglyphs(i) ), 1100 * i)
