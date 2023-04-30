@@ -56,7 +56,8 @@ program main
 
 	implicit none
 
-	integer :: i
+	integer :: i, height, width
+	integer(kind = 4), allocatable :: cv(:,:) ! canvas
 	integer, allocatable :: iglyphs(:)
 
 	type(args_t) :: args
@@ -68,18 +69,23 @@ program main
 	args = parse_args()
 	ttf  = read_ttf(args%ttf_file)
 
-	!call draw_glyph(ttf%glyphs(37))  ! 'B'
-	!call draw_glyph(ttf%glyphs(69))  ! 'b'
-	!call draw_glyph(ttf%glyphs(74))  ! 'g'
-
 	iglyphs = [83, 82, 74]            ! pog
+	iglyphs = [51, 82, 74]            ! Pog
+	!iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
 	!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
 	!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
 	!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
 
+	width  = 1920
+	height = 1080
+	allocate(cv(width, height))
+	cv = 0
+
 	do i = 1, size(iglyphs)
-		call draw_glyph(ttf%glyphs( iglyphs(i) ), 1100 * i)
+		call draw_glyph(cv, ttf%glyphs( iglyphs(i) ), 1400 * i)
 	end do
+
+	call write_img(cv, 'scratch/test.ppm')
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)

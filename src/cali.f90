@@ -56,7 +56,7 @@ module cali_m
 			units_per_em, xmin, ymin, xmax, ymax, mac_style, low_rec_ppem, &
 			font_dir_hint, index2loc_fmt, glyph_data_fmt, nglyphs
 
-		! Table offsets
+		! Table offsets, cached to avoid multiple calls to get_table()
 		integer(kind = 8) :: glyf_offset, loca_offset
 
 		! Dates in ttf long date time format (i64 seconds since 1904)
@@ -64,7 +64,7 @@ module cali_m
 
 		double precision :: vers, font_rev, maxp_vers
 
-		type(glyph_t), allocatable :: glyphs(:)
+		type(glyph_t  ), allocatable :: glyphs(:)
 		type(ttf_table), allocatable :: tables(:)
 
 		contains
@@ -273,7 +273,7 @@ function read_ttf(filename) result(ttf)
 	!print *, 'entry_select = ', ttf%entry_select
 	!print *, 'range_shift  = ', ttf%range_shift
 
-	write(*, '(a,i0)') ' Number of tables = ', ttf%ntables
+	!write(*, '(a,i0)') ' Number of tables = ', ttf%ntables
 
 	! Read offset tables which include the position and length of each table in
 	! the ttf file
@@ -292,8 +292,8 @@ function read_ttf(filename) result(ttf)
 	ttf%vers  = read_fixed(iu)
 	ttf%font_rev = read_fixed(iu)
 
-	print * ,'ttf%vers     = ', ttf%vers
-	print * ,'ttf%font_rev = ', ttf%font_rev
+	write(*,'(a,f8.4)') ' TTF version   = ', ttf%vers
+	write(*,'(a,f8.4)') ' Font revision = ', ttf%font_rev
 
 	ttf%checksum_adj = read_u32(iu)
 	ttf%magic_num    = read_u32(iu)
@@ -307,12 +307,12 @@ function read_ttf(filename) result(ttf)
 	ttf%flags        = read_u16(iu)
 	ttf%units_per_em = read_u16(iu)
 
-	!print *, 'units_per_em = ', ttf%units_per_em
+	write(*, '(a,i0)') ' Units per em = ', ttf%units_per_em
 
 	ttf%created  = read_i64(iu)
 	ttf%modified = read_i64(iu)
-	print *, 'created   = ', ldt2str(ttf%created)
-	print *, 'modified  = ', ldt2str(ttf%modified)
+	write(*,*) 'Created   = ', ldt2str(ttf%created)
+	write(*,*) 'Modified  = ', ldt2str(ttf%modified)
 
 	! These values are Fword's, which are just i16's
 	ttf%xmin = read_fword(iu)
@@ -343,7 +343,7 @@ function read_ttf(filename) result(ttf)
 	ttf%nglyphs   = read_u16(iu)
 
 	!print *, 'maxp_vers      = ', ttf%maxp_vers
-	print *, 'nglyphs        = ', ttf%nglyphs
+	write(*, '(a,i0)') ' Number of glyphs = ', ttf%nglyphs
 
 	!loca = ttf%get_table("loca")
 	!glyf = ttf%get_table("glyf")
@@ -358,6 +358,7 @@ function read_ttf(filename) result(ttf)
 	end do
 
 	close(iu)
+	write(*,*)
 	!print *, 'done read_ttf()'
 	!print *, ''
 
@@ -368,6 +369,8 @@ end function read_ttf
 function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	! Read glyph index iglyph from file unit iu in the ttf struct
+	!
+	! TODO: encapsulate iu within ttf struct
 
 	integer, intent(in) :: iu
 	integer(kind = 8), intent(in) :: iglyph
@@ -499,9 +502,11 @@ end function read_glyph
 
 !===============================================================================
 
-subroutine draw_glyph(glyph, x0)
+subroutine draw_glyph(cv, glyph, x0)
 
-	! Print scilab source code for plotting
+	! Draw a glyph transated horizontally by x0
+	!
+	! TODO: add arg for color
 
 	type(glyph_t), intent(in) :: glyph
 
@@ -509,12 +514,10 @@ subroutine draw_glyph(glyph, x0)
 
 	!********
 
-	double precision :: t
-
 	integer(kind = 2) :: flag, flagn, flagp
-	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND), it
+	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
 	integer(kind = 8), allocatable :: x(:,:)
-	integer, parameter :: NSPLINE = 10
 
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR//'compound glyphs are not supported'
@@ -549,12 +552,12 @@ subroutine draw_glyph(glyph, x0)
 			flag  = glyph%flags(j )
 			flagn = glyph%flags(jn)
 
+			! TODO: make is_on_curve(flag) fn.  This is not readable and meaning
+			! of == 0 or /= 0 is not clear
 			if (iand(flag , ON_CURVE) /= 0 .and. &
 			    iand(flagn, ON_CURVE) /= 0) then
 
-				! Draw a straight line segment from j to jn
-				print '(a,i0,a,i0,a,i0,a,i0,a)', 'plot([', &
-					x(1,j), ', ', x(1,jn) , '], [', x(2,j), ', ', x(2,jn) , '])'
+				call draw_line(cv, x(:,j), x(:,jn))
 
 			else if (iand(flag , ON_CURVE) == 0) then
 
@@ -596,15 +599,7 @@ subroutine draw_glyph(glyph, x0)
 					c = int(0.5d0 * (x(:,j) + x(:,jn)))
 				end if
 
-				print *, 'x = ['
-				do it = 0, NSPLINE
-					t = 1.d0 * it / NSPLINE
-
-					print *, (1-t)**2 * a + 2*(1-t)*t * b + t**2 * c
-
-				end do
-				print *, ']'
-				print '(a)', 'plot(x(:,1), x(:,2))'
+				call draw_bezier2(cv, a, b, c)
 
 			end if
 		end do
@@ -613,6 +608,53 @@ subroutine draw_glyph(glyph, x0)
 	end do
 
 end subroutine draw_glyph
+
+!===============================================================================
+
+subroutine draw_bezier2(cv, p1, p2, p3)
+
+	! Draw a quadratic Bezier curve from start point p1 to end point p3 with
+	! middle off-curve control point p2 on canvas cv
+	!
+	! TODO: add arg for color
+
+	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 8), intent(in) :: p1(ND), p2(ND), p3(ND)
+
+	!********
+
+	double precision :: t
+
+	integer, parameter :: NSPLINE = 10
+	integer(kind = 8) :: it
+
+	print *, 'x = ['
+	do it = 0, NSPLINE
+		t = 1.d0 * it / NSPLINE
+
+		print *, (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
+
+	end do
+	print *, ']'
+	print '(a)', 'plot(x(:,1), x(:,2))'
+
+end subroutine draw_bezier2
+
+!===============================================================================
+
+subroutine draw_line(cv, p1, p2)
+
+	! Draw a line segment from point p1 to p2 on canvas cv
+	!
+	! TODO: add arg for color
+
+	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 8), intent(in) :: p1(ND), p2(ND)
+
+	print '(a,i0,a,i0,a,i0,a,i0,a)', 'plot([', &
+		p1(1), ', ', p2(1), '], [', p1(2), ', ', p2(2), '], "r")'
+
+end subroutine draw_line
 
 !===============================================================================
 
@@ -693,6 +735,101 @@ end function read_ttf_table
 
 !===============================================================================
 
+subroutine write_img(cv, filename)
+
+	integer(kind = 4), allocatable, intent(in) :: cv(:,:)
+
+	character(len = *), intent(in) :: filename
+
+	!********
+
+	integer :: iu, io
+	integer(kind = 1) :: byte, dummy
+	integer(kind = 4) :: dummy4
+
+	!! TODO: make fn for file deletion
+	!open(unit=1234, iostat=stat, file=file, status='old')
+	!if (stat == 0) close(1234, status='delete')
+	open(newunit = iu, iostat = io, file = filename, status = 'old')
+	if (io == 0) close(iu, status = 'delete')
+
+	open(newunit = iu, file = filename, action = 'write', iostat = io, &
+		access = 'stream', convert = 'big_endian')
+	if (io /= EXIT_SUCCESS) then
+		write(*,*) ERROR//'cannot open file "', filename, '"'
+		call exit(EXIT_FAILURE)
+	end if
+
+	!dummy = 0
+	!write(iu) dummy
+	!dummy = -1
+	!write(iu) dummy
+
+	!dummy4 = z'ffffffff'
+
+	!dummy4 = new_color(int(z'ffffffff',8))
+	!write(iu) dummy4
+
+	!write(iu) new_color(int(z'00000000',8))
+	!write(iu) new_color(int(z'000000ff',8))
+	!write(iu) new_color(int(z'0000ff00',8))
+	!write(iu) new_color(int(z'00ff0000',8))
+	!write(iu) new_color(int(z'ff000000',8))
+	!write(iu) new_color(int(z'ffffffff',8))
+
+	!dummy4 = new_color(int(z'abcdef00',8))
+	dummy4 = new_color(int(z'fedcba00',8))
+	!write(iu) dummy4
+
+	! Decompose color into RGB channels, write 1 byte at a time, skipping alpha
+
+	!byte = int(ishft(dummy4, -3 * 8), 1)
+	!write(iu) byte
+	!byte = int(ishft(dummy4, -2 * 8), 1)
+	!write(iu) byte
+	!byte = int(ishft(dummy4, -1 * 8), 1)
+	!write(iu) byte
+
+	write(iu) int(ishft(dummy4, -3 * 8), 1)
+	write(iu) int(ishft(dummy4, -2 * 8), 1)
+	write(iu) int(ishft(dummy4, -1 * 8), 1)
+
+	!!u8 = iand(int(i8,2), int(z'ff',2))
+	!byte = iand(ishft(dummy4, -3), int(z'ff',4))
+
+	!byte = ishft(iand(dummy4, int(z'0000ff00',4)), 8*1)
+
+	close(iu)
+	write(*,*) 'Finished writing file "', filename, '" ...'
+
+end subroutine write_img
+
+!===============================================================================
+
+function new_color(i8) result(color)
+
+	integer(kind = 8), intent(in) :: i8 ! TODO: is i128 portable? maybe manually cast actual arg
+	integer(kind = 4) :: color
+
+	if (i8 <= huge(color)) then
+		color = int(i8,4)
+	else
+		!color = i8 - huge(color)
+		!color = huge(color) - i8
+
+		!! This works
+		!color = i8 - (int(huge(i8),16) + 1)
+
+		!color = i8 - int(huge(i8),16) - 1
+		!color = i8 - huge(i8) - 1
+		color = int(i8 - huge(i8) - 1, 4)
+
+	end if
+
+end function new_color
+
+!===============================================================================
+
 end module cali_m
 
 !===============================================================================
@@ -705,9 +842,12 @@ end module cali_m
 !   * cover multiple fonts
 ! - fill-in contours instead of just outlines
 ! - parse cmap to get unicode (or ascii) to glyph index mapping
+!   * read string to typeset from file
 ! - compound glyphs
 ! - typeset multiple letters and maybe multiple lines
-!   * proper kerning
+!   * read advanceWidth from 'hmtx' table (and numOfLongHorMetrics from the
+!     'hhea' table) to get delta x for each glyph
+!   * more advanced kerning using the 'kern' table
 ! - anti-aliasing?  doubtful
 ! - vector output format, e.g. ps, pdf, or svg?
 
