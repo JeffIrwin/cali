@@ -639,7 +639,7 @@ subroutine draw_bezier2(cv, color, p1, p2, p3)
 	do it = 0, n
 
 		t = 1.d0 * it / n
-		p = int((1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3)
+		p = nint((1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3)
 		call draw_pixel(cv, color, p)
 
 	end do
@@ -685,7 +685,7 @@ subroutine draw_line(cv, color, p1, p2)
 	do it = 0, n
 
 		t = 1.d0 * it / n
-		p = int(p1 + t * (p2 - p1))
+		p = nint(p1 + t * (p2 - p1))
 		call draw_pixel(cv, color, p)
 
 	end do

@@ -57,7 +57,7 @@ program main
 	implicit none
 
 	integer :: i, height, width
-	integer(kind = 4) :: fg, bg
+	integer(kind = 4) :: fg, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
 	integer, allocatable :: iglyphs(:), kern(:)
 
@@ -83,17 +83,19 @@ program main
 	kern = [(120*i, i = 0, size(iglyphs) - 1)]
 
 	iglyphs = [323, 345, 355, 355, 353] ! Καλλι
-	kern    = [ 10, 160, 270, 375, 470] ! manual kerning
+	kern    = [ 10, 160, 270, 375, 470] + 20 ! manual kerning
 
 	! foreground/background colors
-	fg = new_color(int(z'66ddaaff',8))
-	bg = new_color(int(z'222222ff',8))
+	fg  = new_color(int(z'000000ff',8))
+	bg  = new_color(int(z'e8e6cbff',8))
+	bg2 = new_color(int(z'2a7fffff',8))
 
 	! Allocate canvas and set background color.  TODO: constructor
-	width  = 700
-	height = 250
+	width  = 800
+	height = 945
 	allocate(cv(width, height))
 	cv = bg
+	cv(:, 631:) = bg2
 
 	do i = 1, size(iglyphs)
 		call draw_glyph(cv, fg, ttf%glyphs( iglyphs(i) ), kern(i) )
