@@ -637,20 +637,33 @@ subroutine draw_bezier2(cv, color, p1, p2, p3)
 
 	n = 2 * int(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2)))
 	do it = 0, n
+
 		t = 1.d0 * it / n
-
 		p = int((1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3)
-
-		! TODO: make helper fn for bounds checking, use here and in draw_line()
-		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
-		    1 <= p(2) .and. p(2) <= size(cv,2)) then
-
-			cv(p(1), p(2)) = color
-		end if
+		call draw_pixel(cv, color, p)
 
 	end do
 
 end subroutine draw_bezier2
+
+!===============================================================================
+
+subroutine draw_pixel(cv, color, p)
+
+	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 4), intent(in) :: color
+	integer(kind = 8), intent(in) :: p(ND)
+
+	! Check bounds.  TODO: set a flag to log *one* warning (not a warning
+	! per-pixel)
+	if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
+	    1 <= p(2) .and. p(2) <= size(cv,2)) then
+
+		cv(p(1), p(2)) = color
+
+	end if
+
+end subroutine draw_pixel
 
 !===============================================================================
 
@@ -670,14 +683,10 @@ subroutine draw_line(cv, color, p1, p2)
 
 	n = 2 * int(maxval(abs(p2 - p1)))
 	do it = 0, n
+
 		t = 1.d0 * it / n
 		p = int(p1 + t * (p2 - p1))
-
-		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
-		    1 <= p(2) .and. p(2) <= size(cv,2)) then
-
-			cv(p(1), p(2)) = color
-		end if
+		call draw_pixel(cv, color, p)
 
 	end do
 

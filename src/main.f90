@@ -80,10 +80,10 @@ program main
 
 	! Auto set kern if not explicitly set, at least until I can parse
 	! advanceWidth
-	kern = [(420*i, i = 0, size(iglyphs) - 1)]
+	kern = [(120*i, i = 0, size(iglyphs) - 1)]
 
-	!iglyphs = [323, 345, 355, 355, 353] ! Καλλι
-	!kern    = [ 10, 160, 270, 375, 470] ! manual kerning
+	iglyphs = [323, 345, 355, 355, 353] ! Καλλι
+	kern    = [ 10, 160, 270, 375, 470] ! manual kerning
 
 	! foreground/background colors
 	fg = new_color(int(z'66ddaaff',8))
