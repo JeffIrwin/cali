@@ -503,11 +503,12 @@ end function read_glyph
 
 !===============================================================================
 
-subroutine draw_glyph(cv, glyph, x0)
+subroutine draw_glyph(cv, color, glyph, x0)
 
 	! Draw a glyph transated horizontally by x0
-	!
-	! TODO: add arg for color
+
+	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 4), intent(in) :: color
 
 	type(glyph_t), intent(in) :: glyph
 
@@ -516,7 +517,6 @@ subroutine draw_glyph(cv, glyph, x0)
 	!********
 
 	integer(kind = 2) :: flag, flagn, flagp
-	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
 	integer(kind = 8), allocatable :: x(:,:)
 
@@ -565,7 +565,7 @@ subroutine draw_glyph(cv, glyph, x0)
 			if (iand(flag , ON_CURVE) /= 0 .and. &
 			    iand(flagn, ON_CURVE) /= 0) then
 
-				call draw_line(cv, x(:,j), x(:,jn))
+				call draw_line(cv, color, x(:,j), x(:,jn))
 
 			else if (iand(flag , ON_CURVE) == 0) then
 
@@ -607,7 +607,7 @@ subroutine draw_glyph(cv, glyph, x0)
 					c = int(0.5d0 * (x(:,j) + x(:,jn)))
 				end if
 
-				call draw_bezier2(cv, a, b, c)
+				call draw_bezier2(cv, color, a, b, c)
 
 			end if
 		end do
@@ -619,14 +619,13 @@ end subroutine draw_glyph
 
 !===============================================================================
 
-subroutine draw_bezier2(cv, p1, p2, p3)
+subroutine draw_bezier2(cv, color, p1, p2, p3)
 
 	! Draw a quadratic Bezier curve from start point p1 to end point p3 with
 	! middle off-curve control point p2 on canvas cv
-	!
-	! TODO: add arg for color
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 4), intent(in) :: color
 	integer(kind = 8), intent(in) :: p1(ND), p2(ND), p3(ND)
 
 	!********
@@ -646,7 +645,7 @@ subroutine draw_bezier2(cv, p1, p2, p3)
 		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
 		    1 <= p(2) .and. p(2) <= size(cv,2)) then
 
-			cv(p(1), p(2)) = new_color(int(z'dd66aaff',8))
+			cv(p(1), p(2)) = color
 		end if
 
 	end do
@@ -655,13 +654,12 @@ end subroutine draw_bezier2
 
 !===============================================================================
 
-subroutine draw_line(cv, p1, p2)
+subroutine draw_line(cv, color, p1, p2)
 
 	! Draw a line segment from point p1 to p2 on canvas cv
-	!
-	! TODO: add arg for color
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 4), intent(in) :: color
 	integer(kind = 8), intent(in) :: p1(ND), p2(ND)
 
 	!********
@@ -678,7 +676,7 @@ subroutine draw_line(cv, p1, p2)
 		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
 		    1 <= p(2) .and. p(2) <= size(cv,2)) then
 
-			cv(p(1), p(2)) = new_color(int(z'dd66aaff',8))
+			cv(p(1), p(2)) = color
 		end if
 
 	end do
@@ -849,14 +847,17 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - visualize in Fortran, not scilab.  export ppm file
-!   * MVP done
-!   * support colors
 ! - testing
 !   * cover multiple fonts
 ! - fill-in contours instead of just outlines
 ! - parse cmap to get unicode (or ascii) to glyph index mapping
 !   * read string to typeset from file
+! - other config args?
+!   * img size
+!   * fg, bg colors
+!   * font filename
+!   * text filename (or directly as a string)
+!   * resolution / font size
 ! - compound glyphs
 ! - typeset multiple letters and maybe multiple lines
 !   * read advanceWidth from 'hmtx' table (and numOfLongHorMetrics from the
