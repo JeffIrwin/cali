@@ -21,6 +21,7 @@ module cali_m
 		!Y_DELTA   = int(b'00100000')     ! 2 * X_DELTA
 
 	character, parameter :: &
+			LINE_FEED       = char(10), &
 			ESC             = char(27)
 
 	character(len = *), parameter :: &
@@ -743,13 +744,11 @@ subroutine write_img(cv, filename)
 
 	!********
 
-	integer :: iu, io
+	integer :: iu, io, ix, iy
 	integer(kind = 1) :: byte, dummy
 	integer(kind = 4) :: dummy4
 
-	!! TODO: make fn for file deletion
-	!open(unit=1234, iostat=stat, file=file, status='old')
-	!if (stat == 0) close(1234, status='delete')
+	! TODO: make fn for file deletion
 	open(newunit = iu, iostat = io, file = filename, status = 'old')
 	if (io == 0) close(iu, status = 'delete')
 
@@ -760,49 +759,45 @@ subroutine write_img(cv, filename)
 		call exit(EXIT_FAILURE)
 	end if
 
-	!dummy = 0
-	!write(iu) dummy
-	!dummy = -1
-	!write(iu) dummy
+	!dummy4 = new_color(int(z'fedcba00',8))
 
-	!dummy4 = z'ffffffff'
+	!! Decompose color into RGB channels, write 1 byte at a time, skipping alpha
+	!write(iu) int(ishft(dummy4, -3 * 8), 1)
+	!write(iu) int(ishft(dummy4, -2 * 8), 1)
+	!write(iu) int(ishft(dummy4, -1 * 8), 1)
 
-	!dummy4 = new_color(int(z'ffffffff',8))
-	!write(iu) dummy4
+	write(iu) 'P6' //LINE_FEED
+	write(iu) str(size(cv, 1))//' '//str(size(cv, 2))//LINE_FEED
+	write(iu) '255'//LINE_FEED
 
-	!write(iu) new_color(int(z'00000000',8))
-	!write(iu) new_color(int(z'000000ff',8))
-	!write(iu) new_color(int(z'0000ff00',8))
-	!write(iu) new_color(int(z'00ff0000',8))
-	!write(iu) new_color(int(z'ff000000',8))
-	!write(iu) new_color(int(z'ffffffff',8))
-
-	!dummy4 = new_color(int(z'abcdef00',8))
-	dummy4 = new_color(int(z'fedcba00',8))
-	!write(iu) dummy4
-
-	! Decompose color into RGB channels, write 1 byte at a time, skipping alpha
-
-	!byte = int(ishft(dummy4, -3 * 8), 1)
-	!write(iu) byte
-	!byte = int(ishft(dummy4, -2 * 8), 1)
-	!write(iu) byte
-	!byte = int(ishft(dummy4, -1 * 8), 1)
-	!write(iu) byte
-
-	write(iu) int(ishft(dummy4, -3 * 8), 1)
-	write(iu) int(ishft(dummy4, -2 * 8), 1)
-	write(iu) int(ishft(dummy4, -1 * 8), 1)
-
-	!!u8 = iand(int(i8,2), int(z'ff',2))
-	!byte = iand(ishft(dummy4, -3), int(z'ff',4))
-
-	!byte = ishft(iand(dummy4, int(z'0000ff00',4)), 8*1)
+	do iy = 1, size(cv, 2)
+		do ix = 1, size(cv, 1)
+			write(iu) int(ishft(cv(ix,iy), -3 * 8), 1)
+			write(iu) int(ishft(cv(ix,iy), -2 * 8), 1)
+			write(iu) int(ishft(cv(ix,iy), -1 * 8), 1)
+		end do
+	end do
 
 	close(iu)
 	write(*,*) 'Finished writing file "', filename, '" ...'
 
 end subroutine write_img
+
+!===============================================================================
+
+function str(i)
+
+	integer, intent(in) :: i
+	character(len = :), allocatable :: str
+
+	!********
+
+	character(len = 64) :: buffer
+
+	write(buffer, '(i0)') i
+	str = trim(buffer)
+
+end function str
 
 !===============================================================================
 
