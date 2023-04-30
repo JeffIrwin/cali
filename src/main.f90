@@ -90,7 +90,7 @@ program main
 		call draw_glyph(cv, ttf%glyphs( iglyphs(i) ), 140 * i)
 	end do
 
-	call write_img(cv, 'scratch/test.ppm')
+	call write_img(cv, 'test.ppm')
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)
