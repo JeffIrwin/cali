@@ -521,7 +521,7 @@ subroutine draw_glyph(cv, glyph, x0)
 	integer(kind = 8), allocatable :: x(:,:)
 
 	! TODO: units, arg
-	double precision, parameter :: scale = 0.1d0
+	double precision, parameter :: scale = 1.0d0  ! 0.1d0
 
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR//'compound glyphs are not supported'
@@ -538,7 +538,7 @@ subroutine draw_glyph(cv, glyph, x0)
 	x = glyph%x
 	do i = 1, glyph%npts
 		x(1,i) =  scale * x(1,i) + x0
-		x(2,i) = -scale * x(2,i) + 200  ! TODO: get baseline from arg
+		x(2,i) = -scale * x(2,i) + 2000  ! TODO: get baseline from arg
 	end do
 
 	start_pt = 1
@@ -643,7 +643,12 @@ subroutine draw_bezier2(cv, p1, p2, p3)
 
 		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
 
-		cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
+		! TODO: make helper fn for bounds checking
+		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
+		    1 <= p(2) .and. p(2) <= size(cv,2)) then
+
+			cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
+		end if
 
 	end do
 
@@ -666,12 +671,16 @@ subroutine draw_line(cv, p1, p2)
 	integer(kind = 8) :: p(ND)
 	double precision :: t
 
-	n = maxval(abs(p2 - p1))
+	n = 2 * maxval(abs(p2 - p1))
 	do i = 0, n
 		t = 1.d0 * i / n
 		p = p1 + t * (p2 - p1)
 
-		cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
+		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
+		    1 <= p(2) .and. p(2) <= size(cv,2)) then
+
+			cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
+		end if
 
 	end do
 
@@ -793,7 +802,7 @@ subroutine write_img(cv, filename)
 	end do
 
 	close(iu)
-	write(*,*) 'Finished writing file "', filename, '" ...'
+	write(*,*) 'Finished writing file "', filename, '"'
 
 end subroutine write_img
 

@@ -3,6 +3,8 @@
 
 A calligraphic library for fonts
 
+![](./doc/kalli.png)
+
 # WIP
 
 # Resources

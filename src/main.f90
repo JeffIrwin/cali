@@ -58,7 +58,7 @@ program main
 
 	integer :: i, height, width
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
-	integer, allocatable :: iglyphs(:)
+	integer, allocatable :: iglyphs(:), kern(:)
 
 	type(args_t) :: args
 	type(ttf_t)  :: ttf
@@ -75,10 +75,14 @@ program main
 	!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
 	!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
 	!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
+	iglyphs = [(i, i = 314, 337)]     ! \alpha - \omega
+
+	iglyphs = [323, 345, 355, 355, 353]
+	kern    = [ 10, 160, 270, 375, 470] * 10
 
 	! Allocate canvas and set background color
-	width  = 1920
-	height = 1080
+	width  = 7000
+	height = 2500
 	allocate(cv(width, height))
 	cv = new_color(int(z'202020ff',8))
 
@@ -87,7 +91,8 @@ program main
 	!cv(900:1200, 400:800) = new_color(int(z'dd000000',8))
 
 	do i = 1, size(iglyphs)
-		call draw_glyph(cv, ttf%glyphs( iglyphs(i) ), 140 * i)
+		!call draw_glyph(cv, ttf%glyphs( iglyphs(i) ), 140 * i)
+		call draw_glyph(cv, ttf%glyphs( iglyphs(i) ), kern(i) )
 	end do
 
 	call write_img(cv, 'test.ppm')
