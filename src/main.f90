@@ -71,22 +71,23 @@ program main
 
 	iglyphs = [83, 82, 74]            ! pog
 	iglyphs = [51, 82, 74]            ! Pog
-	!iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
+	iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
 	!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
 	!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
 	!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
 
+	! Allocate canvas and set background color
 	width  = 1920
 	height = 1080
 	allocate(cv(width, height))
-	cv = new_color(int(z'20202000',8))
+	cv = new_color(int(z'202020ff',8))
 
-	cv(100:1600, 100:700) = new_color(int(z'0000dd00',8))
-	cv(600:1800, 600:900) = new_color(int(z'00dd0000',8))
-	cv(900:1200, 400:800) = new_color(int(z'dd000000',8))
+	!cv(100:1600, 100:700) = new_color(int(z'0000dd00',8))
+	!cv(600:1800, 600:900) = new_color(int(z'00dd0000',8))
+	!cv(900:1200, 400:800) = new_color(int(z'dd000000',8))
 
 	do i = 1, size(iglyphs)
-		call draw_glyph(cv, ttf%glyphs( iglyphs(i) ), 1400 * i)
+		call draw_glyph(cv, ttf%glyphs( iglyphs(i) ), 140 * i)
 	end do
 
 	call write_img(cv, 'scratch/test.ppm')

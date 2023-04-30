@@ -520,6 +520,9 @@ subroutine draw_glyph(cv, glyph, x0)
 	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
 	integer(kind = 8), allocatable :: x(:,:)
 
+	! TODO: units, arg
+	double precision, parameter :: scale = 0.1d0
+
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR//'compound glyphs are not supported'
 		call exit(EXIT_FAILURE)
@@ -531,9 +534,11 @@ subroutine draw_glyph(cv, glyph, x0)
 	!print *, 'x = '
 	!print '(2i6)', glyph%x
 
+	!x = scale * glyph%x
 	x = glyph%x
 	do i = 1, glyph%npts
-		x(1,i) = x(1,i) + x0
+		x(1,i) =  scale * x(1,i) + x0
+		x(2,i) = -scale * x(2,i) + 200  ! TODO: get baseline from arg
 	end do
 
 	start_pt = 1
@@ -629,15 +634,18 @@ subroutine draw_bezier2(cv, p1, p2, p3)
 	integer, parameter :: NSPLINE = 10
 	integer(kind = 8) :: it
 
-	print *, 'x = ['
-	do it = 0, NSPLINE
-		t = 1.d0 * it / NSPLINE
+	integer :: i, n
+	integer(kind = 8) :: p(ND)
 
-		print *, (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
+	n = 2 * (norm2(dble(p2 - p1)) + norm2(dble(p3 - p2)))
+	do i = 0, n
+		t = 1.d0 * i / n
+
+		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
+
+		cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
 
 	end do
-	print *, ']'
-	print '(a)', 'plot(x(:,1), x(:,2))'
 
 end subroutine draw_bezier2
 
@@ -652,8 +660,20 @@ subroutine draw_line(cv, p1, p2)
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 8), intent(in) :: p1(ND), p2(ND)
 
-	print '(a,i0,a,i0,a,i0,a,i0,a)', 'plot([', &
-		p1(1), ', ', p2(1), '], [', p1(2), ', ', p2(2), '], "r")'
+	!********
+
+	integer :: i, n
+	integer(kind = 8) :: p(ND)
+	double precision :: t
+
+	n = maxval(abs(p2 - p1))
+	do i = 0, n
+		t = 1.d0 * i / n
+		p = p1 + t * (p2 - p1)
+
+		cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
+
+	end do
 
 end subroutine draw_line
 
@@ -759,22 +779,16 @@ subroutine write_img(cv, filename)
 		call exit(EXIT_FAILURE)
 	end if
 
-	!dummy4 = new_color(int(z'fedcba00',8))
-
-	!! Decompose color into RGB channels, write 1 byte at a time, skipping alpha
-	!write(iu) int(ishft(dummy4, -3 * 8), 1)
-	!write(iu) int(ishft(dummy4, -2 * 8), 1)
-	!write(iu) int(ishft(dummy4, -1 * 8), 1)
-
 	write(iu) 'P6' //LINE_FEED
 	write(iu) str(size(cv, 1))//' '//str(size(cv, 2))//LINE_FEED
 	write(iu) '255'//LINE_FEED
 
 	do iy = 1, size(cv, 2)
 		do ix = 1, size(cv, 1)
-			write(iu) int(ishft(cv(ix,iy), -3 * 8), 1)
-			write(iu) int(ishft(cv(ix,iy), -2 * 8), 1)
-			write(iu) int(ishft(cv(ix,iy), -1 * 8), 1)
+			write(iu) int(ishft(cv(ix,iy), -3 * 8), 1) ! R
+			write(iu) int(ishft(cv(ix,iy), -2 * 8), 1) ! G
+			write(iu) int(ishft(cv(ix,iy), -1 * 8), 1) ! B
+			! No alpha in ppm
 		end do
 	end do
 
