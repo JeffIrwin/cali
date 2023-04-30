@@ -537,11 +537,10 @@ subroutine draw_glyph(cv, glyph, x0)
 	!! TODO: render onto a subcanvas with a local origin at x == 0, then
 	!! translate and blend that into the global canvas to avoid resolution
 	!! issues at high x0
-	!x = scale * glyph%x
 	x = glyph%x
 	do i = 1, glyph%npts
-		x(1,i) =  scale * x(1,i) + x0
-		x(2,i) = -scale * x(2,i) + 200  ! TODO: get baseline from arg
+		x(1,i) = int( scale * x(1,i) + x0 )
+		x(2,i) = int(-scale * x(2,i) + 200)  ! TODO: get baseline from arg
 	end do
 
 	start_pt = 1
@@ -637,17 +636,17 @@ subroutine draw_bezier2(cv, p1, p2, p3)
 	integer :: it, n
 	integer(kind = 8) :: p(ND)
 
-	n = 2 * (norm2(dble(p2 - p1)) + norm2(dble(p3 - p2)))
+	n = 2 * int(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2)))
 	do it = 0, n
 		t = 1.d0 * it / n
 
-		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
+		p = int((1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3)
 
 		! TODO: make helper fn for bounds checking, use here and in draw_line()
 		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
 		    1 <= p(2) .and. p(2) <= size(cv,2)) then
 
-			cv(p(1), p(2)) = new_color(int(z'66dd66ff',8))
+			cv(p(1), p(2)) = new_color(int(z'dd66aaff',8))
 		end if
 
 	end do
@@ -671,15 +670,15 @@ subroutine draw_line(cv, p1, p2)
 	integer(kind = 8) :: p(ND)
 	double precision :: t
 
-	n = 2 * maxval(abs(p2 - p1))
+	n = 2 * int(maxval(abs(p2 - p1)))
 	do it = 0, n
 		t = 1.d0 * it / n
-		p = p1 + t * (p2 - p1)
+		p = int(p1 + t * (p2 - p1))
 
 		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
 		    1 <= p(2) .and. p(2) <= size(cv,2)) then
 
-			cv(p(1), p(2)) = new_color(int(z'66dd66ff',8))
+			cv(p(1), p(2)) = new_color(int(z'dd66aaff',8))
 		end if
 
 	end do
