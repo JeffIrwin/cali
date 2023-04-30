@@ -44,7 +44,7 @@ module cali_m
 
 	type glyph_t
 		integer(kind = 8) :: ncontours, xmin, ymin, xmax, ymax, ninst, npts
-		integer(kind = 8), allocatable :: x(:,:), end_pts(:)
+		integer(kind = 8), allocatable :: x(:,:), end_pts(:)  ! TODO: use 4-bytes for x
 		integer(kind = 2), allocatable :: flags(:)
 	end type glyph_t
 
@@ -521,7 +521,7 @@ subroutine draw_glyph(cv, glyph, x0)
 	integer(kind = 8), allocatable :: x(:,:)
 
 	! TODO: units, arg
-	double precision, parameter :: scale = 1.0d0  ! 0.1d0
+	double precision, parameter :: scale = 0.1d0
 
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR//'compound glyphs are not supported'
@@ -534,11 +534,14 @@ subroutine draw_glyph(cv, glyph, x0)
 	!print *, 'x = '
 	!print '(2i6)', glyph%x
 
+	!! TODO: render onto a subcanvas with a local origin at x == 0, then
+	!! translate and blend that into the global canvas to avoid resolution
+	!! issues at high x0
 	!x = scale * glyph%x
 	x = glyph%x
 	do i = 1, glyph%npts
 		x(1,i) =  scale * x(1,i) + x0
-		x(2,i) = -scale * x(2,i) + 2000  ! TODO: get baseline from arg
+		x(2,i) = -scale * x(2,i) + 200  ! TODO: get baseline from arg
 	end do
 
 	start_pt = 1
@@ -548,7 +551,7 @@ subroutine draw_glyph(cv, glyph, x0)
 			!print '(2i8)', x(:,j)
 			!print *, 'j, x = ', j, x(:,j)
 
-			! Next point, which might loop back to beginning of contour
+			! Next point index, which might loop back to beginning of contour
 			if (j == glyph%end_pts(i) + 1) then
 				jn = start_pt
 			else
@@ -567,6 +570,8 @@ subroutine draw_glyph(cv, glyph, x0)
 
 			else if (iand(flag , ON_CURVE) == 0) then
 
+				! Current point j is off-curve
+				!
 				! Draw a quadratic Bezier spline with point index j as the
 				! middle control point:
 				!
@@ -578,9 +583,7 @@ subroutine draw_glyph(cv, glyph, x0)
 				! defined but might be an implicit midpoint between succesive
 				! off-curve points.  There is logic to handle this below.
 
-				! Current point j is off-curve
-
-				! Previous point
+				! Previous point index
 				if (j == start_pt) then
 					jp = glyph%end_pts(i) + 1
 				else
@@ -631,23 +634,20 @@ subroutine draw_bezier2(cv, p1, p2, p3)
 
 	double precision :: t
 
-	integer, parameter :: NSPLINE = 10
-	integer(kind = 8) :: it
-
-	integer :: i, n
+	integer :: it, n
 	integer(kind = 8) :: p(ND)
 
 	n = 2 * (norm2(dble(p2 - p1)) + norm2(dble(p3 - p2)))
-	do i = 0, n
-		t = 1.d0 * i / n
+	do it = 0, n
+		t = 1.d0 * it / n
 
 		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
 
-		! TODO: make helper fn for bounds checking
+		! TODO: make helper fn for bounds checking, use here and in draw_line()
 		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
 		    1 <= p(2) .and. p(2) <= size(cv,2)) then
 
-			cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
+			cv(p(1), p(2)) = new_color(int(z'66dd66ff',8))
 		end if
 
 	end do
@@ -667,19 +667,19 @@ subroutine draw_line(cv, p1, p2)
 
 	!********
 
-	integer :: i, n
+	integer :: it, n
 	integer(kind = 8) :: p(ND)
 	double precision :: t
 
 	n = 2 * maxval(abs(p2 - p1))
-	do i = 0, n
-		t = 1.d0 * i / n
+	do it = 0, n
+		t = 1.d0 * it / n
 		p = p1 + t * (p2 - p1)
 
 		if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
 		    1 <= p(2) .and. p(2) <= size(cv,2)) then
 
-			cv(p(1), p(2)) = new_color(int(z'ddddddff',8))
+			cv(p(1), p(2)) = new_color(int(z'66dd66ff',8))
 		end if
 
 	end do
@@ -774,15 +774,13 @@ subroutine write_img(cv, filename)
 	!********
 
 	integer :: iu, io, ix, iy
-	integer(kind = 1) :: byte, dummy
-	integer(kind = 4) :: dummy4
 
 	! TODO: make fn for file deletion
 	open(newunit = iu, iostat = io, file = filename, status = 'old')
 	if (io == 0) close(iu, status = 'delete')
 
 	open(newunit = iu, file = filename, action = 'write', iostat = io, &
-		access = 'stream', convert = 'big_endian')
+		access = 'stream')
 	if (io /= EXIT_SUCCESS) then
 		write(*,*) ERROR//'cannot open file "', filename, '"'
 		call exit(EXIT_FAILURE)
@@ -826,22 +824,21 @@ end function str
 
 function new_color(i8) result(color)
 
-	integer(kind = 8), intent(in) :: i8 ! TODO: is i128 portable? maybe manually cast actual arg
+	! This is a helper fn to cast a hex color in the format 0xrrggbbaa into a
+	! 4-byte signed Fortran integer.  Call it like this:
+	!
+	!     !                       rrggbbaa
+	!     green = new_color(int(z'00ff00ff',8))
+	!
+	! Casting the arg to a temporary 8-byte int is necessary to prevent overflow
+
+	integer(kind = 8), intent(in) :: i8
 	integer(kind = 4) :: color
 
 	if (i8 <= huge(color)) then
 		color = int(i8,4)
 	else
-		!color = i8 - huge(color)
-		!color = huge(color) - i8
-
-		!! This works
-		!color = i8 - (int(huge(i8),16) + 1)
-
-		!color = i8 - int(huge(i8),16) - 1
-		!color = i8 - huge(i8) - 1
 		color = int(i8 - huge(i8) - 1, 4)
-
 	end if
 
 end function new_color
@@ -854,8 +851,8 @@ end module cali_m
 
 ! TODO:
 ! - visualize in Fortran, not scilab.  export ppm file
+!   * MVP done
 !   * support colors
-!   * draw rectangles too for background (or highlighting)
 ! - testing
 !   * cover multiple fonts
 ! - fill-in contours instead of just outlines

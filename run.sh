@@ -4,7 +4,7 @@ set -xe
 
 ./build.sh
 
-#./build/cali $*
-./build/cali ./fonts/computer-modern/cmunrm.ttf
-#./build/cali /mnt/c/Windows/Fonts/calibri.ttf
+#time ./build/cali $*
+#time ./build/cali /mnt/c/Windows/Fonts/calibri.ttf
+time ./build/cali ./fonts/computer-modern/cmunrm.ttf
 
