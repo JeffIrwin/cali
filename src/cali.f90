@@ -301,7 +301,7 @@ function read_ttf(filename) result(ttf)
 	!print '(a,z0)', ' magic_num = ', ttf%magic_num
 
 	if (ttf%magic_num /= int(z'5f0f3cf5')) then
-		write(*,*) ERROR//'bad magic number'
+		write(*,*) ERROR//'bad magic number in ttf file'
 		call exit(EXIT_FAILURE)
 	end if
 
@@ -773,7 +773,9 @@ end function read_ttf_table
 
 subroutine write_img(cv, filename)
 
-	integer(kind = 4), allocatable, intent(in) :: cv(:,:)
+	! Write a canvas cv to a ppm image file
+
+	integer(kind = 4), intent(in) :: cv(:,:)
 
 	character(len = *), intent(in) :: filename
 
@@ -809,6 +811,76 @@ subroutine write_img(cv, filename)
 	write(*,*) 'Finished writing file "', filename, '"'
 
 end subroutine write_img
+
+!===============================================================================
+
+function read_img(filename) result(cv)
+
+	! Read a ppm image file
+
+	character(len = *), intent(in) :: filename
+
+	integer(kind = 4), allocatable :: cv(:,:)
+
+	!********
+
+	character(len = :), allocatable :: str
+
+	integer :: iu, io, ix, iy, pos_beg, pos_end, width, height
+
+	open(newunit = iu, file = filename, action = 'read', iostat = io, &
+		access = 'stream')
+	if (io /= EXIT_SUCCESS) then
+		write(*,*) ERROR//'cannot open file "', filename, '"'
+		call exit(EXIT_FAILURE)
+	end if
+	write(*,*) 'Reading file "', filename, '" ...'
+
+	! TODO: parameterize P6 and share between reader/writer
+	str = read_str(iu, 2)
+	if (str /= 'P6') then
+		write(*,*) ERROR//'bad magic number in ppm file'
+		call exit(EXIT_FAILURE)
+	end if
+
+	str = read_str(iu, 1)
+	str = ''
+	pos_beg = ftell(iu)
+	do while (str /= LINE_FEED)
+		str = read_str(iu, 1)
+	end do
+	pos_end = ftell(iu)
+	!print *, 'pos beg/end = ', pos_beg, pos_end
+
+	call fseek(iu, pos_beg, SEEK_ABS)
+	str = read_str(iu, pos_end - pos_beg)  ! includes newline
+	!print *, 'str = "'//str//'"'
+
+	read(str, *) width, height
+	!print *, 'width, height = ', width, height
+
+	! Skip "255\n"
+	str = ''
+	do while (str /= LINE_FEED)
+		str = read_str(iu, 1)
+	end do
+
+	allocate(cv(width, height))
+	cv = 0
+
+	do iy = 1, size(cv, 2)
+		do ix = 1, size(cv, 1)
+			cv(ix,iy) = ior(cv(ix,iy), ishft(read_u8(iu) , 3 * 8))
+			cv(ix,iy) = ior(cv(ix,iy), ishft(read_u8(iu) , 2 * 8))
+			cv(ix,iy) = ior(cv(ix,iy), ishft(read_u8(iu) , 1 * 8))
+			cv(ix,iy) = ior(cv(ix,iy), ishft(z'ff'       , 0 * 8))
+			!cv(ix,iy) = ior(cv(ix,iy), ishft(int(z'ff',2), 0 * 8))
+		end do
+	end do
+
+	close(iu)
+
+end function read_img
 
 !===============================================================================
 

@@ -3,8 +3,9 @@
 
 # lerp == linear interpolation
 
-lerp(a, b, t) = a + t * (b - a)
-              = (1 - t) * a + t * b
+lerp(a, b, t)
+	= a + t * (b - a)
+	= (1 - t) * a + t * b
 
 #======================================
 

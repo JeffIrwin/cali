@@ -58,7 +58,7 @@ program main
 
 	integer :: i, height, width
 	integer(kind = 4) :: fg, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:) ! canvas
+	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:) ! canvas
 	integer, allocatable :: iglyphs(:), kern(:)
 
 	type(args_t) :: args
@@ -87,7 +87,9 @@ program main
 
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
+	!fg  = new_color(int(z'22cc99ff',8))
 	bg  = new_color(int(z'e8e6cbff',8))
+	!bg  = new_color(int(z'333333ff',8))
 	bg2 = new_color(int(z'2a7fffff',8))
 
 	! Allocate canvas and set background color.  TODO: constructor
@@ -102,6 +104,12 @@ program main
 	end do
 
 	call write_img(cv, 'test.ppm')
+
+	! Test ppm write/read round trip
+	cv2 = read_img('test.ppm')
+	!print '(a,z0,a,z0)', 'cv  = ', cv (1,1), ', ', cv (width, height)
+	!print '(a,z0,a,z0)', 'cv2 = ', cv2(1,1), ', ', cv2(width, height)
+	print *, 'all equal = ', all(cv == cv2)
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)

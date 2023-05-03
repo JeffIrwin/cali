@@ -44,10 +44,19 @@ set(EXE_SRC
 	${SRC_DIR}/main.f90
 	)
 
-#add_executable(${PROJECT} src/cali.f90 src/main.f90)
 add_executable("${EXE_BIN}" ${EXE_SRC})
 target_link_libraries(${EXE_BIN} ${LINK_LIBS})
 set_target_properties("${EXE_BIN}" PROPERTIES OUTPUT_NAME "${EXE}")
+
+#********
+
+set(TEST_EXE "test")
+set(TEST_SRC
+	${SRC_DIR}/test.f90
+	)
+
+add_executable("${TEST_EXE}" ${TEST_SRC})
+target_link_libraries(${TEST_EXE} ${LINK_LIBS})
 
 #=======================================================================
 
