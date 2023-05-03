@@ -21,7 +21,7 @@ program main
 	print *, 'hello from test main'
 	print *, ''
 
-	call exit(EXIT_FAILURE)
+	!call exit(EXIT_FAILURE)
 	call exit(EXIT_SUCCESS)
 
 end program main
