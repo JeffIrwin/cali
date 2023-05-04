@@ -31,7 +31,6 @@ subroutine test_ppm_1(npass, nfail)
 
 	call write_img(cv, ppm_filename)
 	cv2 = read_img(ppm_filename)
-	cv2(1,1) = 0
 	if (all(cv == cv2)) then
 		npass = npass + 1
 	else
