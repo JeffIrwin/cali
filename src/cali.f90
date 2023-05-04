@@ -55,10 +55,12 @@ module cali_m
 		integer(kind = 8) :: scalar_type, ntables, search_range, &
 			entry_select, range_shift, checksum_adj, magic_num, flags, &
 			units_per_em, xmin, ymin, xmax, ymax, mac_style, low_rec_ppem, &
-			font_dir_hint, index2loc_fmt, glyph_data_fmt, nglyphs
+			font_dir_hint, index2loc_fmt, glyph_data_fmt, nglyphs, &
+			cmap_vers, ncmap_tables, platform_id, platform_sid, &
+			cmap_sub_offset
 
 		! Table offsets, cached to avoid multiple calls to get_table()
-		integer(kind = 8) :: glyf_offset, loca_offset
+		integer(kind = 8) :: glyf_offset, loca_offset, cmap_offset
 
 		! Dates in ttf long date time format (i64 seconds since 1904)
 		integer(kind = 8) :: created, modified
@@ -345,6 +347,25 @@ function read_ttf(filename) result(ttf)
 
 	!print *, 'maxp_vers      = ', ttf%maxp_vers
 	write(*, '(a,i0)') ' Number of glyphs = ', ttf%nglyphs
+
+	ttf%cmap_offset = ttf%tables( ttf%get_table("cmap") )%offset
+	call fseek(iu, ttf%cmap_offset, SEEK_ABS)
+	ttf%cmap_vers    = read_u16(iu)
+	ttf%ncmap_tables = read_u16(iu)
+
+	! TODO: iterate below for each ncmap_tables?  Maybe I only need the first
+	! subtable?
+	ttf%platform_id      = read_u16(iu)
+	ttf%platform_sid     = read_u16(iu)
+	ttf%cmap_sub_offset  = read_u32(iu)
+
+	print *, 'cmap_vers       = ', ttf%cmap_vers
+	print *, 'ncmap_tables    = ', ttf%ncmap_tables
+	print *, 'platform_id     = ', ttf%platform_id
+	print *, 'platform_sid    = ', ttf%platform_sid
+	print *, 'cmap_sub_offset = ', ttf%cmap_sub_offset
+
+	! TODO: jump to cmap_sub_offset RELATIVE to cmap_offset
 
 	!loca = ttf%get_table("loca")
 	!glyf = ttf%get_table("glyf")
@@ -929,6 +950,7 @@ end module cali_m
 
 ! TODO:
 ! - testing
+!   * ppm round-trip done for simple rectangle images
 !   * cover multiple fonts
 ! - fill-in contours instead of just outlines
 ! - parse cmap to get unicode (or ascii) to glyph index mapping
