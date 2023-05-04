@@ -16,7 +16,7 @@ module cali_m
 		ON_CURVE   = int(b'00000001'), &
 		X_IS_BYTE  = int(b'00000010'), &
 		!Y_IS_BYTE = int(b'00000100'), &  ! 2 * X_IS_BYTE
-		REPEAT     = int(b'00001000'), &
+		FREPEAT    = int(b'00001000'), &
 		X_DELTA    = int(b'00010000')!,  &
 		!Y_DELTA   = int(b'00100000')     ! 2 * X_DELTA
 
@@ -447,7 +447,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 		glyph%flags(i) = flag
 		!print '(a,z2)', 'flag = ', flag
 
-		if (iand(flag, REPEAT) /= 0) then
+		if (iand(flag, FREPEAT) /= 0) then
 			nrepeat = int(read_u8(iu), 2)
 			!print *, 'nrepeat = ', nrepeat
 
