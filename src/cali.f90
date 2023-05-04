@@ -887,15 +887,20 @@ function read_img(filename) result(cv)
 	end do
 
 	allocate(cv(width, height))
-	cv = 0
-
+	!cv = 0
 	do iy = 1, size(cv, 2)
 		do ix = 1, size(cv, 1)
-			cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 3 * 8), 4))
-			cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 2 * 8), 4))
-			cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 1 * 8), 4))
-			!cv(ix,iy) = ior(cv(ix,iy), ishft(z'ff'       , 0 * 8))
-			cv(ix,iy) = ior(cv(ix,iy), int(ishft(int(z'ff',2), 0 * 8), 4))
+			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 3 * 8), 4))
+			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 2 * 8), 4))
+			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 1 * 8), 4))
+			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(int(z'ff',2), 0 * 8), 4))
+			!!cv(ix,iy) = ior(cv(ix,iy), ishft(z'ff'       , 0 * 8))
+
+			cv(ix,iy) = ior(int(ishft(read_u8(iu) , 3 * 8), 4), &
+			            ior(int(ishft(read_u8(iu) , 2 * 8), 4), &
+			            ior(int(ishft(read_u8(iu) , 1 * 8), 4), &
+			                int(ishft(int(z'ff',2), 0 * 8), 4))))
+
 		end do
 	end do
 

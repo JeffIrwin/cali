@@ -12,6 +12,8 @@ contains
 
 subroutine test_ppm_1(npass, nfail)
 
+	! Round-trip write/read test for a simple 3x2 pixel image
+
 	integer, intent(inout) :: npass, nfail
 
 	!********
@@ -42,6 +44,8 @@ end subroutine test_ppm_1
 !===============================================================================
 
 subroutine test_ppm_2(npass, nfail)
+
+	! Round-trip write/read test for a larger image of overlapping rectangles
 
 	integer, intent(inout) :: npass, nfail
 
