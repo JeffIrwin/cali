@@ -41,6 +41,34 @@ end subroutine test_ppm_1
 
 !===============================================================================
 
+subroutine test_ppm_2(npass, nfail)
+
+	integer, intent(inout) :: npass, nfail
+
+	!********
+
+	character(len = *), parameter :: ppm_filename = "build/test-2.ppm"
+	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
+
+	allocate(cv(300,200))
+
+	cv                     = new_color(int(z'232323ff',8))
+	cv( 10: 200,  10: 150) = new_color(int(z'bc4523ff',8))
+	cv(100: 290,  50: 190) = new_color(int(z'12fe09ff',8))
+	cv(110: 190,  70: 130) = new_color(int(z'7638adff',8))
+
+	call write_img(cv, ppm_filename)
+	cv2 = read_img(ppm_filename)
+	if (all(cv == cv2)) then
+		npass = npass + 1
+	else
+		nfail = nfail + 1
+	end if
+
+end subroutine test_ppm_2
+
+!===============================================================================
+
 end module test_m
 
 !===============================================================================
@@ -60,6 +88,7 @@ program main
 	nfail = 0
 
 	call test_ppm_1(npass, nfail)
+	call test_ppm_2(npass, nfail)
 
 	write(*,*)
 	write(*,*) "********"
