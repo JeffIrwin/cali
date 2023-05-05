@@ -70,21 +70,6 @@ program main
 	args = parse_args()
 	ttf  = read_ttf(args%ttf_file)
 
-	iglyphs = [83, 82, 74]            ! pog
-	iglyphs = [51, 82, 74]            ! Pog
-	!iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
-	!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
-	!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
-	!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
-	!iglyphs = [(i, i = 314, 337)]     ! \Alpha - \Omega
-
-	! Auto set kern if not explicitly set, at least until I can parse
-	! advanceWidth
-	kern = [(120*i, i = 0, size(iglyphs) - 1)] + 20
-
-	!iglyphs = [323, 345, 355, 355, 353] ! Καλλι
-	!kern    = [ 10, 160, 270, 375, 470] + 20 ! manual kerning
-
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
 	!fg  = new_color(int(z'22cc99ff',8))
@@ -99,8 +84,27 @@ program main
 	cv = bg
 	cv(:, 631:) = bg2
 
+	iglyphs = [83, 82, 74]            ! pog
+	iglyphs = [51, 82, 74]            ! Pog
+	!iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
+	!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
+	!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
+	!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
+	!iglyphs = [(i, i = 314, 337)]     ! \Alpha - \Omega
+
+	! Auto set kern if not explicitly set, at least until I can parse
+	! advanceWidth
+	kern = [(120*i, i = 0, size(iglyphs) - 1)] + 20
+
 	do i = 1, size(iglyphs)
-		call draw_glyph(cv, fg, ttf%glyphs( iglyphs(i) ), kern(i) )
+		call draw_glyph(cv, fg, ttf%glyphs( iglyphs(i) ), kern(i), 200, 0.1d0)
+	end do
+
+	iglyphs = [323, 345, 355, 355, 353] ! Καλλι
+	kern    = [ 10, 160, 270, 375, 470] + 20 ! manual kerning
+
+	do i = 1, size(iglyphs)
+		call draw_glyph(cv, fg, ttf%glyphs( iglyphs(i) ), kern(i), 500, 0.1d0)
 	end do
 
 	call write_img(cv, 'test.ppm')

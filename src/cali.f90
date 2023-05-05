@@ -524,7 +524,7 @@ end function read_glyph
 
 !===============================================================================
 
-subroutine draw_glyph(cv, color, glyph, x0)
+subroutine draw_glyph(cv, color, glyph, x0, y0, scaling)
 
 	! Draw a glyph transated horizontally by x0
 
@@ -533,16 +533,15 @@ subroutine draw_glyph(cv, color, glyph, x0)
 
 	type(glyph_t), intent(in) :: glyph
 
-	integer, intent(in) :: x0  ! translation.  TODO: y translation and scale
+	! TODO: units.  Maybe encapsulate x0, y0, scaling as more general transform?
+	integer, intent(in) :: x0, y0 ! translation
+	double precision, intent(in) :: scaling
 
 	!********
 
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
 	integer(kind = 8), allocatable :: x(:,:)
-
-	! TODO: units, arg
-	double precision, parameter :: scale = 0.1d0
 
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR//'compound glyphs are not supported'
@@ -560,8 +559,8 @@ subroutine draw_glyph(cv, color, glyph, x0)
 	!! issues at high x0
 	x = glyph%x
 	do i = 1, glyph%npts
-		x(1,i) = int( scale * x(1,i) + x0 )
-		x(2,i) = int(-scale * x(2,i) + 200)  ! TODO: get baseline from arg
+		x(1,i) = int( scaling * x(1,i) + x0)
+		x(2,i) = int(-scaling * x(2,i) + y0)
 	end do
 
 	start_pt = 1
