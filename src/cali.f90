@@ -524,24 +524,27 @@ end function read_glyph
 
 !===============================================================================
 
-subroutine draw_glyph(cv, color, glyph, x0, y0, scaling)
+subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
 
 	! Draw a glyph transated horizontally by x0
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
 
+	type(ttf_t  ), intent(in) :: ttf
 	type(glyph_t), intent(in) :: glyph
 
 	! TODO: units.  Maybe encapsulate x0, y0, scaling as more general transform?
 	integer, intent(in) :: x0, y0 ! translation
-	double precision, intent(in) :: scaling
+	double precision, intent(in) :: pix_per_em
 
 	!********
 
+	double precision :: scaling
+
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
-	integer(kind = 8), allocatable :: x(:,:)
+	integer(kind = 8), allocatable :: x(:,:)  ! TODO: double?  it's scaled
 
 	if (glyph%ncontours < 0) then
 		write(*,*) ERROR//'compound glyphs are not supported'
@@ -554,13 +557,16 @@ subroutine draw_glyph(cv, color, glyph, x0, y0, scaling)
 	!print *, 'x = '
 	!print '(2i6)', glyph%x
 
-	!! TODO: render onto a subcanvas with a local origin at x == 0, then
-	!! translate and blend that into the global canvas to avoid resolution
-	!! issues at high x0
+	! Convert from font units to pixels
+	scaling = pix_per_em / ttf%units_per_em
+
+	! TODO: render onto a subcanvas with a local origin at x == 0, then
+	! translate and blend that into the global canvas to avoid resolution
+	! issues at high x0
 	x = glyph%x
 	do i = 1, glyph%npts
 		x(1,i) = int( scaling * x(1,i) + x0)
-		x(2,i) = int(-scaling * x(2,i) + y0)
+		x(2,i) = int(-scaling * x(2,i) + y0)  ! invert y for y-down img coords
 	end do
 
 	start_pt = 1
@@ -853,7 +859,8 @@ function read_img(filename) result(cv)
 
 	character(len = :), allocatable :: str
 
-	integer :: iu, io, ix, iy, pos_beg, pos_end, width, height
+	integer :: iu, io, ix, iy, width, height
+	integer(kind = 8) :: pos_beg, pos_end
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream')
@@ -880,7 +887,7 @@ function read_img(filename) result(cv)
 	!print *, 'pos beg/end = ', pos_beg, pos_end
 
 	call fseek(iu, pos_beg, SEEK_ABS)
-	str = read_str(iu, pos_end - pos_beg)  ! includes newline
+	str = read_str(iu, int(pos_end - pos_beg))  ! includes newline
 	!print *, 'str = "'//str//'"'
 
 	read(str, *) width, height

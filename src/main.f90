@@ -56,9 +56,11 @@ program main
 
 	implicit none
 
-	integer :: i, height, width
-	integer(kind = 4) :: fg, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:) ! canvas
+	double precision :: pix_per_em
+
+	integer :: i, height, width, line_height
+	integer(kind = 4) :: fg, fg2, bg, bg2
+	integer(kind = 4), allocatable :: cv(:,:) ! canvas
 	integer, allocatable :: iglyphs(:), kern(:)
 
 	type(args_t) :: args
@@ -72,17 +74,19 @@ program main
 
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
-	!fg  = new_color(int(z'22cc99ff',8))
+	fg2 = new_color(int(z'ffffffff',8))
 	bg  = new_color(int(z'e8e6cbff',8))
-	!bg  = new_color(int(z'333333ff',8))
 	bg2 = new_color(int(z'2a7fffff',8))
 
 	! Allocate canvas and set background color.  TODO: constructor
 	width  = 800
-	height = 945
+	height = 600
 	allocate(cv(width, height))
 	cv = bg
-	cv(:, 631:) = bg2
+	cv(:, 300:) = bg2
+
+	pix_per_em = 200.d0
+	line_height = nint(1.2 * pix_per_em)
 
 	iglyphs = [83, 82, 74]            ! pog
 	iglyphs = [51, 82, 74]            ! Pog
@@ -97,14 +101,16 @@ program main
 	kern = [(120*i, i = 0, size(iglyphs) - 1)] + 20
 
 	do i = 1, size(iglyphs)
-		call draw_glyph(cv, fg, ttf%glyphs( iglyphs(i) ), kern(i), 200, 0.1d0)
+		call draw_glyph(cv, fg , ttf, ttf%glyphs( iglyphs(i) ), &
+			kern(i), 1 * line_height, pix_per_em)
 	end do
 
 	iglyphs = [323, 345, 355, 355, 353] ! Καλλι
 	kern    = [ 10, 160, 270, 375, 470] + 20 ! manual kerning
 
 	do i = 1, size(iglyphs)
-		call draw_glyph(cv, fg, ttf%glyphs( iglyphs(i) ), kern(i), 500, 0.1d0)
+		call draw_glyph(cv, fg2, ttf, ttf%glyphs( iglyphs(i) ), &
+			kern(i), 2 * line_height, pix_per_em)
 	end do
 
 	call write_img(cv, 'test.ppm')
