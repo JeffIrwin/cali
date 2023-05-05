@@ -792,6 +792,16 @@ end function read_ttf_table
 
 !===============================================================================
 
+subroutine delete_file(filename)
+	character(len = *), intent(in) :: filename
+	!********
+	integer :: iu, io
+	open(newunit = iu, iostat = io, file = filename, status = 'old')
+	if (io == 0) close(iu, status = 'delete')
+end subroutine delete_file
+
+!===============================================================================
+
 subroutine write_img(cv, filename)
 
 	! Write a canvas cv to a ppm image file
@@ -804,12 +814,9 @@ subroutine write_img(cv, filename)
 
 	integer :: iu, io, ix, iy
 
-	! TODO: make fn for file deletion
-	open(newunit = iu, iostat = io, file = filename, status = 'old')
-	if (io == 0) close(iu, status = 'delete')
-
+	call delete_file(filename)
 	open(newunit = iu, file = filename, action = 'write', iostat = io, &
-		access = 'stream')
+		access = 'stream', status = 'new')
 	if (io /= EXIT_SUCCESS) then
 		write(*,*) ERROR//'cannot open file "', filename, '"'
 		call exit(EXIT_FAILURE)
@@ -887,20 +894,12 @@ function read_img(filename) result(cv)
 	end do
 
 	allocate(cv(width, height))
-	!cv = 0
 	do iy = 1, size(cv, 2)
 		do ix = 1, size(cv, 1)
-			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 3 * 8), 4))
-			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 2 * 8), 4))
-			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(read_u8(iu) , 1 * 8), 4))
-			!cv(ix,iy) = ior(cv(ix,iy), int(ishft(int(z'ff',2), 0 * 8), 4))
-			!!cv(ix,iy) = ior(cv(ix,iy), ishft(z'ff'       , 0 * 8))
-
 			cv(ix,iy) = ior(int(ishft(read_u8(iu) , 3 * 8), 4), &
 			            ior(int(ishft(read_u8(iu) , 2 * 8), 4), &
 			            ior(int(ishft(read_u8(iu) , 1 * 8), 4), &
 			                int(ishft(int(z'ff',2), 0 * 8), 4))))
-
 		end do
 	end do
 
@@ -960,7 +959,7 @@ end module cali_m
 ! - fill-in contours instead of just outlines
 ! - parse cmap to get unicode (or ascii) to glyph index mapping
 !   * read string to typeset from file
-! - other config args?
+! - other config args?  json input for app only
 !   * img size
 !   * fg, bg colors
 !   * font filename

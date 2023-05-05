@@ -80,10 +80,10 @@ program main
 
 	! Auto set kern if not explicitly set, at least until I can parse
 	! advanceWidth
-	kern = [(120*i, i = 0, size(iglyphs) - 1)]
+	kern = [(120*i, i = 0, size(iglyphs) - 1)] + 20
 
-	iglyphs = [323, 345, 355, 355, 353] ! Καλλι
-	kern    = [ 10, 160, 270, 375, 470] + 20 ! manual kerning
+	!iglyphs = [323, 345, 355, 355, 353] ! Καλλι
+	!kern    = [ 10, 160, 270, 375, 470] + 20 ! manual kerning
 
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
@@ -104,12 +104,6 @@ program main
 	end do
 
 	call write_img(cv, 'test.ppm')
-
-	! Test ppm write/read round trip
-	cv2 = read_img('test.ppm')
-	!print '(a,z0,a,z0)', 'cv  = ', cv (1,1), ', ', cv (width, height)
-	!print '(a,z0,a,z0)', 'cv2 = ', cv2(1,1), ', ', cv2(width, height)
-	print *, 'all equal = ', all(cv == cv2)
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)
