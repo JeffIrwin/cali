@@ -146,11 +146,11 @@ function to_cp(chr) result(codep)
 		return
 	end if
 	shift = utf_bits(1) * (bytes - 1)
-	codep = ishft(iand(iachar(chr(1:1)), utf_mask(bytes+1)), shift)
+	codep = ishft(iand(iachar(chr(1:1)), int(utf_mask(bytes+1),4)), shift)
 
 	do i = 2, bytes
 		shift = shift - utf_bits(1)
-		codep = ior(codep, ishft(iand(iachar(chr(i:i)), utf_mask(1)), shift))
+		codep = ior(codep, ishft(iand(iachar(chr(i:i)), int(utf_mask(1),4)), shift))
 	end do
 
 end function to_cp

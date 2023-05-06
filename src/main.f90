@@ -81,8 +81,9 @@ program main
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
 	fg2 = new_color(int(z'ffffffff',8))
-	bg  = new_color(int(z'e8e6cbff',8))
-	bg2 = new_color(int(z'2a7fffff',8))
+	!bg  = new_color(int(z'e8e6cbff',8))
+	bg  = new_color(int(z'cd67cdff',8))
+	bg2 = new_color(int(z'348934ff',8))
 
 	! Allocate canvas and set background color.  TODO: constructor
 	width  = 1000
