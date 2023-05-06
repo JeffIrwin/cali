@@ -53,16 +53,15 @@ program main
 
 	use app_m
 	use cali_m
-	use utf8_m
+	!use utf8_m
 
 	implicit none
 
-	character(len = :), allocatable :: utf8_str
-	integer(kind  = 4), allocatable :: utf32_str(:)
+	character(len = :), allocatable :: str
 
 	double precision :: pix_per_em
 
-	integer :: i, height, width, line_height, lmargin
+	integer :: height, width, line_height, lmargin
 	integer(kind = 4) :: fg, fg2, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
 
@@ -93,15 +92,14 @@ program main
 	lmargin = 20
 
 	! String to be typeset
-	utf8_str = "Καλλι"
-	!utf8_str = "Привет"
+	str = "Καλλι"
+	str = "Привет"
 
-	! TODO: refactor as draw_str() fn
+	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	call draw_str(cv, fg , ttf, utf8_str, lmargin, 1 * line_height, pix_per_em)
-
-	utf8_str = "Graph"
-	call draw_str(cv, fg2, ttf, utf8_str, lmargin, 2 * line_height, pix_per_em)
+	str = "Graph"
+	str = "World"
+	call draw_str(cv, fg2, ttf, str, lmargin, 2 * line_height, pix_per_em)
 
 	call write_img(cv, 'test.ppm')
 

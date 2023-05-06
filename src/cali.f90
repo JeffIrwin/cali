@@ -668,9 +668,6 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 	write(*,*) 'Drawing string "'//utf8_str//'" ...'
 
-	!call draw_str(cv, fg, ttf, utf8_str, 1 * line_height, pix_per_em)
-
-	!print *, 'utf8_str = ', utf8_str
 	!print *, 'len = ', len(utf8_str)
 
 	utf32_str = to_cp_vec(utf8_str)
