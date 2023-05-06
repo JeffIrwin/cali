@@ -1,7 +1,7 @@
 
 !===========================================================================
 
-module utf8_m
+module utf_m
 
 	! This was mechanically translated from the C example on Rosetta code:
 	!
@@ -50,10 +50,10 @@ module utf8_m
 	integer(kind = 4), parameter :: &
 		utf_end(NUTF_T) =         &
 		[                &
-			int(o'0'       ,4), &
-			int(o'0177'    ,4), &
-			int(o'03777'   ,4), &
-			int(o'0177777' ,4), &
+			int(o'00000000',4), &
+			int(o'00000177',4), &
+			int(o'00003777',4), &
+			int(o'00177777',4), &
 			int(o'04177777',4)  &
 		]
 
@@ -74,21 +74,21 @@ contains
 
 ! A codepoint or cp is basically utf32
 
-function codepoint_len(cp) result(len)
-	integer(kind = 4), intent(in) :: cp
+function utf32_len(char32) result(len)
+	integer(kind = 4), intent(in) :: char32
 	integer :: len
 	!********
 	integer :: i
 	len = 0
 	do i = 1, NUTF_T
-		if (cp >= utf_beg(i) .and. cp <= utf_end(i)) exit
+		if (char32 >= utf_beg(i) .and. char32 <= utf_end(i)) exit
 		len = len + 1
 	end do
 	if (len > 4) then
 		write(*,*) 'Error: out of bounds'
 		call exit(-2)
 	end if
-end function codepoint_len
+end function utf32_len
 
 !********
 
@@ -112,33 +112,34 @@ end function utf8_len
 
 !********
 
-function to_utf8(cp) result(ret)
-	integer(kind = 4), intent(in) :: cp
+function to_char8(char32) result(ret)
+	! Convert 1 character from utf32 to utf8
+	integer(kind = 4), intent(in) :: char32
 	character(len = :), allocatable :: ret
 	!********
 	integer :: i, bytes, shift
-	bytes = codepoint_len(cp)
+	bytes = utf32_len(char32)
 	allocate(character(len = bytes) :: ret)
 	shift = utf_bits(1) * (bytes - 1)
-	ret(1:1) =     achar(ior(iand(ishft(cp, -shift), int(utf_mask(bytes+1),4)), &
+	ret(1:1) =     achar(ior(iand(ishft(char32, -shift), int(utf_mask(bytes+1),4)), &
 			int(utf_lead(bytes+1),4)))
 	do i = 2, bytes
 		shift = shift - utf_bits(1)
-		ret(i:i) = achar(ior(iand(ishft(cp, -shift), int(utf_mask(1),4)), &
+		ret(i:i) = achar(ior(iand(ishft(char32, -shift), int(utf_mask(1),4)), &
 			int(utf_lead(1),4)))
 	end do
-end function to_utf8
+end function to_char8
 
 !********
 
-! TODO: rename to_utf32()?
-function to_cp(chr) result(codep)
-	character(len = *), intent(in) :: chr
+function to_char32(char8) result(codep)
+	! Convert 1 character from utf8 to utf32
+	character(len = *), intent(in) :: char8
 	integer(kind = 4) :: codep
 	!********
 	integer :: i, bytes, shift
 
-	bytes = utf8_len(chr(1:1))
+	bytes = utf8_len(char8(1:1))
 	!print * , 'bytes = ', bytes
 	if (bytes == 0) then
 		! TODO: parameterize -1 as bad codepoint.  Maybe 0 instead?
@@ -146,30 +147,30 @@ function to_cp(chr) result(codep)
 		return
 	end if
 	shift = utf_bits(1) * (bytes - 1)
-	codep = ishft(iand(iachar(chr(1:1)), int(utf_mask(bytes+1),4)), shift)
+	codep = ishft(iand(iachar(char8(1:1)), int(utf_mask(bytes+1),4)), shift)
 
 	do i = 2, bytes
 		shift = shift - utf_bits(1)
-		codep = ior(codep, ishft(iand(iachar(chr(i:i)), int(utf_mask(1),4)), shift))
+		codep = ior(codep, ishft(iand(iachar(char8(i:i)), int(utf_mask(1),4)), shift))
 	end do
 
-end function to_cp
+end function to_char32
 
 !********
 
-function to_cp_vec(utf8_in) result(cpvec)
-	! Convert utf8 string to codepoint array
+function to_utf32(utf8_in) result(utf32)
+	! Convert utf8 string to utf32 string
 	character(len = *), intent(in) :: utf8_in
-	integer(kind = 4), allocatable :: cpvec(:)
+	integer(kind = 4), allocatable :: utf32(:)
 	!********
 	integer :: i, j
-	integer(kind = 4) :: cp
+	integer(kind = 4) :: char32
 
-	!print *, 'starting to_cp_vec()'
+	!print *, 'starting to_utf32()'
 	!print *, 'len = ', len(utf8_in)
 	!print *, ''
 
-	allocate(cpvec(len(utf8_in)))  ! worst-case size (all ASCII)
+	allocate(utf32(len(utf8_in)))  ! worst-case size (all ASCII)
 
 	!i = 0
 	!j = 0
@@ -177,56 +178,56 @@ function to_cp_vec(utf8_in) result(cpvec)
 	!	! This could probably be optimized by incrementing i by utf8_len
 	!	! instead of trying every single byte offset
 	!	i = i + 1
-	!	cp = to_cp(utf8_in(i:))
-	!	if (cp /= -1) then
+	!	char32 = to_char32(utf8_in(i:))
+	!	if (char32 /= -1) then
 	!		j = j + 1
-	!		cpvec(j) = cp
+	!		utf32(j) = char32
 	!	end if
 	!end do
-	!cpvec = cpvec(1:j) ! trim
+	!utf32 = utf32(1:j) ! trim
 
 	i = 1
 	j = 1
 	do while (i <= len(utf8_in))
-		cp = to_cp(utf8_in(i:))
-		cpvec(j) = cp
+		char32 = to_char32(utf8_in(i:))
+		utf32(j) = char32
 
-		! If we changed to_cp() to return len, this extra len call wouldn't be
+		! If we changed to_char32() to return len, this extra len call wouldn't be
 		! required
-		i = i + codepoint_len(cp)
+		i = i + utf32_len(char32)
 
 		j = j + 1
 	end do
-	cpvec = cpvec(1: j-1) ! trim
+	utf32 = utf32(1: j-1) ! trim
 
-end function to_cp_vec
+end function to_utf32
 
 !********
 
-function to_utf8_str(cpvec) result(utf8_str)
-	integer(kind = 4), intent(in) :: cpvec(:)
-	character(len = :), allocatable :: utf8_str
-	!********
+function to_utf8(utf32) result(utf8)
+	integer(kind = 4), intent(in) :: utf32(:)
 	character(len = :), allocatable :: utf8
+	!********
+	character(len = :), allocatable :: char8
 	integer :: i, j
 
 	! Worst-case size (all 4-byte chars)
-	allocate(character(len = 4 * size(cpvec)) :: utf8_str)
-	!utf8_str = repeat(' ', 4 * size(cpvec))
+	allocate(character(len = 4 * size(utf32)) :: utf8)
+	!utf8 = repeat(' ', 4 * size(utf32))
 
 	j = 1
-	do i = 1, size(cpvec)
-		utf8 = to_utf8(cpvec(i))
-		utf8_str(j: j + len(utf8) - 1) = utf8
-		j = j + len(utf8)
+	do i = 1, size(utf32)
+		char8 = to_char8(utf32(i))
+		utf8(j: j + len(char8) - 1) = char8
+		j = j + len(char8)
 	end do
-	utf8_str = utf8_str(1: j-1) ! trim
+	utf8 = utf8(1: j-1) ! trim
 
-end function to_utf8_str
+end function to_utf8
 
 !********
 
-end module utf8_m
+end module utf_m
 
 !===========================================================================
 

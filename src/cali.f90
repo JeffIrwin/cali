@@ -646,14 +646,16 @@ end function read_glyph
 
 subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
-	! Draw a string starting at pixel x0 left, y0 bottom
+	! Draw a string on canvas cv starting at pixel x0 left, y0 bottom
 
-	use utf8_m
+	use utf_m
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
 
 	type(ttf_t  ), intent(in) :: ttf
+
+	! This could just be an ASCII string, since UTF8 is compatible with ASCII
 	character(len = :), allocatable :: utf8_str
 
 	! TODO: maybe encapsulate x0, y0, scaling as more general transform?
@@ -670,7 +672,9 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 	!print *, 'len = ', len(utf8_str)
 
-	utf32_str = to_cp_vec(utf8_str)
+	! There's a little memory overhead here converting the whole string to
+	! utf32. We only need to convert 1 char at a time to draw it
+	utf32_str = to_utf32(utf8_str)
 
 	!print *, 'utf32_str = ', utf32_str
 

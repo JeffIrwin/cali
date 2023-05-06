@@ -4,9 +4,39 @@
 module test_m
 
 	use cali_m
+	use utf_m
+
 	implicit none
 
 contains
+
+!===============================================================================
+
+subroutine test_utf(npass, nfail)
+
+	! Round-trip write/read test for a simple 3x2 pixel image
+
+	integer, intent(inout) :: npass, nfail
+
+	!********
+
+	write(*,*) "testing utf ..."
+
+	! TODO: array, more tests
+
+	if ("Καλλι" == to_utf8(to_utf32("Καλλι"))) then
+		npass = npass + 1
+	else
+		nfail = nfail + 1
+	end if
+
+	if ("Привет" == to_utf8(to_utf32("Привет"))) then
+		npass = npass + 1
+	else
+		nfail = nfail + 1
+	end if
+
+end subroutine test_utf
 
 !===============================================================================
 
@@ -23,13 +53,13 @@ subroutine test_ppm_1(npass, nfail)
 
 	allocate(cv(3,2))
 
-	cv(1,1) = new_color(int(z'ff0000ff',8))
-	cv(2,1) = new_color(int(z'00ff00ff',8))
-	cv(3,1) = new_color(int(z'0000ffff',8))
+	cv(1,1) = new_color(int(z"ff0000ff",8))
+	cv(2,1) = new_color(int(z"00ff00ff",8))
+	cv(3,1) = new_color(int(z"0000ffff",8))
 
-	cv(1,2) = new_color(int(z'ffff00ff',8))
-	cv(2,2) = new_color(int(z'ffffffff',8))
-	cv(3,2) = new_color(int(z'000000ff',8))
+	cv(1,2) = new_color(int(z"ffff00ff",8))
+	cv(2,2) = new_color(int(z"ffffffff",8))
+	cv(3,2) = new_color(int(z"000000ff",8))
 
 	call write_img(cv, ppm_filename)
 	cv2 = read_img(ppm_filename)
@@ -56,10 +86,10 @@ subroutine test_ppm_2(npass, nfail)
 
 	allocate(cv(300,200))
 
-	cv                     = new_color(int(z'232323ff',8))
-	cv( 10: 200,  10: 150) = new_color(int(z'bc4523ff',8))
-	cv(100: 290,  50: 190) = new_color(int(z'12fe09ff',8))
-	cv(110: 190,  70: 130) = new_color(int(z'7638adff',8))
+	cv                     = new_color(int(z"232323ff",8))
+	cv( 10: 200,  10: 150) = new_color(int(z"bc4523ff",8))
+	cv(100: 290,  50: 190) = new_color(int(z"12fe09ff",8))
+	cv(110: 190,  70: 130) = new_color(int(z"7638adff",8))
 
 	call write_img(cv, ppm_filename)
 	cv2 = read_img(ppm_filename)
@@ -93,9 +123,9 @@ program main
 
 	call test_ppm_1(npass, nfail)
 	call test_ppm_2(npass, nfail)
+	call test_utf  (npass, nfail)
 
 	! TODO:
-	! - utf tests
 	! - typesetting tests after API is stable
 
 	write(*,*)
