@@ -16,7 +16,7 @@ module cali_m
 		ON_CURVE   = int(b'00000001'), &
 		X_IS_BYTE  = int(b'00000010'), &
 		!Y_IS_BYTE = int(b'00000100'), &  ! 2 * X_IS_BYTE
-		FREPEAT    = int(b'00001000'), &
+		REPEAT_    = int(b'00001000'), &
 		X_DELTA    = int(b'00010000')!,  &
 		!Y_DELTA   = int(b'00100000')     ! 2 * X_DELTA
 
@@ -50,14 +50,34 @@ module cali_m
 
 	!********
 
+	type cmap_t
+		integer :: fmt_, length, language, nseg_x2, search_range, &
+			entry_select, range_shift, platform_id, platform_sid, offset
+
+	!UInt16	format	Format number is set to 4
+	!UInt16	length	Length of subtable in bytes
+	!UInt16	language	Language code (see above)
+	!UInt16	segCountX2	2 * segCount
+	!UInt16	searchRange	2 * (2**FLOOR(log2(segCount)))
+	!UInt16	entrySelector	log2(searchRange/2)
+	!UInt16	rangeShift	(2 * segCount) - searchRange
+	!UInt16	endCode[segCount]	Ending character code for each segment, last = 0xFFFF.
+	!UInt16	reservedPad	This value should be zero
+	!UInt16	startCode[segCount]	Starting character code for each segment
+	!UInt16	idDelta[segCount]	Delta for all character codes in segment
+	!UInt16	idRangeOffset[segCount]	Offset in bytes to glyph indexArray, or 0
+	!UInt16	glyphIndexArray[variable]	Glyph index array
+	end type cmap_t
+
+	!********
+
 	type ttf_t
 
 		integer(kind = 8) :: scalar_type, ntables, search_range, &
 			entry_select, range_shift, checksum_adj, magic_num, flags, &
 			units_per_em, xmin, ymin, xmax, ymax, mac_style, low_rec_ppem, &
 			font_dir_hint, index2loc_fmt, glyph_data_fmt, nglyphs, &
-			cmap_vers, ncmap_tables, platform_id, platform_sid, &
-			cmap_sub_offset
+			cmap_vers, ncmap_tables
 
 		! Table offsets, cached to avoid multiple calls to get_table()
 		integer(kind = 8) :: glyf_offset, loca_offset, cmap_offset
@@ -69,6 +89,7 @@ module cali_m
 
 		type(glyph_t  ), allocatable :: glyphs(:)
 		type(ttf_table), allocatable :: tables(:)
+		type(cmap_t) :: cmap
 
 		contains
 			procedure :: get_table
@@ -230,7 +251,7 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu
-	integer(kind = 8) :: i, head, maxp, sum, filesize
+	integer(kind = 8) :: i, head, maxp, sum_, filesize
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -251,14 +272,14 @@ function read_ttf(filename) result(ttf)
 	! word.  It should be fixable by reading up until the last word, then
 	! reading the last 1-4 bytes and padding it with zeros
 
-	sum = 0
+	sum_ = 0
 	do i = 1, filesize / 4
 	!do i = 1, (filesize + 3) / 4
-		sum = sum + read_u32(iu)
+		sum_ = sum_ + read_u32(iu)
 	end do
-	sum = iand(sum, int(z'ffffffff',8))
+	sum_ = iand(sum_, int(z'ffffffff',8))
 
-	if (sum /= int(z'b1b0afba', 8)) then
+	if (sum_ /= int(z'b1b0afba', 8)) then
 		write(*,*) ERROR//'bad checksum for head table'
 		call exit(EXIT_FAILURE)
 	end if
@@ -355,17 +376,46 @@ function read_ttf(filename) result(ttf)
 
 	! TODO: iterate below for each ncmap_tables?  Maybe I only need the first
 	! subtable?
-	ttf%platform_id      = read_u16(iu)
-	ttf%platform_sid     = read_u16(iu)
-	ttf%cmap_sub_offset  = read_u32(iu)
+	ttf%cmap%platform_id  = read_u16(iu)
+	ttf%cmap%platform_sid = read_u16(iu)
+	ttf%cmap%offset       = read_u32(iu)
 
 	print *, 'cmap_vers       = ', ttf%cmap_vers
 	print *, 'ncmap_tables    = ', ttf%ncmap_tables
-	print *, 'platform_id     = ', ttf%platform_id
-	print *, 'platform_sid    = ', ttf%platform_sid
-	print *, 'cmap_sub_offset = ', ttf%cmap_sub_offset
+	print *, 'platform_id     = ', ttf%cmap%platform_id
+	print *, 'platform_sid    = ', ttf%cmap%platform_sid
+	print *, 'cmap_sub_offset = ', ttf%cmap%offset
 
-	! TODO: jump to cmap_sub_offset RELATIVE to cmap_offset
+	! Jump to cmap_sub_offset relative to cmap_offset
+	!offset = offset + ttf%glyf_offset
+	call fseek(iu, ttf%cmap_offset + ttf%cmap%offset, SEEK_ABS)
+	ttf%cmap%fmt_ = read_u16(iu)
+	!ttf%cmap%frmt = read_u16(iu)
+	!ttf%cmap%frmt = read_u16(iu)
+	!ttf%cmap%frmt = read_u16(iu)
+	!ttf%cmap%frmt = read_u16(iu)
+	!ttf%cmap%frmt = read_u16(iu)
+	!ttf%cmap%frmt = read_u16(iu)
+
+	!ttf%cmap_fmt = read_u16(iu)
+
+	print *, 'cmap fmt = ', ttf%cmap%fmt_
+
+	!UInt16	format	Format number is set to 4
+	!UInt16	length	Length of subtable in bytes
+	!UInt16	language	Language code (see above)
+	!UInt16	segCountX2	2 * segCount
+	!UInt16	searchRange	2 * (2**FLOOR(log2(segCount)))
+	!UInt16	entrySelector	log2(searchRange/2)
+	!UInt16	rangeShift	(2 * segCount) - searchRange
+	!UInt16	endCode[segCount]	Ending character code for each segment, last = 0xFFFF.
+	!UInt16	reservedPad	This value should be zero
+	!UInt16	startCode[segCount]	Starting character code for each segment
+	!UInt16	idDelta[segCount]	Delta for all character codes in segment
+	!UInt16	idRangeOffset[segCount]	Offset in bytes to glyph indexArray, or 0
+	!UInt16	glyphIndexArray[variable]	Glyph index array
+
+	!********
 
 	!loca = ttf%get_table("loca")
 	!glyf = ttf%get_table("glyf")
@@ -468,7 +518,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 		glyph%flags(i) = flag
 		!print '(a,z2)', 'flag = ', flag
 
-		if (iand(flag, FREPEAT) /= 0) then
+		if (iand(flag, REPEAT_) /= 0) then
 			nrepeat = int(read_u8(iu), 2)
 			!print *, 'nrepeat = ', nrepeat
 
@@ -748,7 +798,7 @@ function read_ttf_table(iu) result(table)
 
 	!********
 
-	integer(kind = 8) :: i, old, sum
+	integer(kind = 8) :: i, old, sum_
 
 	!print *, 'starting read_ttf_table()'
 
@@ -774,19 +824,19 @@ function read_ttf_table(iu) result(table)
 
 	call fseek(iu, table%offset, SEEK_ABS)
 
-	sum = 0
+	sum_ = 0
 
 	! Number of 4-byte words is ceiling(num_bytes / 4)
 	do i = 1, (table%length + 3) / 4
-		sum = sum + read_u32(iu)
+		sum_ = sum_ + read_u32(iu)
 	end do
-	!print '(a,z0)', '  sum   = ', sum
+	!print '(a,z0)', '  sum_   = ', sum_
 
-	sum = iand(sum, int(z'ffffffff',8))
-	!print '(a,z0)', ' final  sum   = ', sum
+	sum_ = iand(sum_, int(z'ffffffff',8))
+	!print '(a,z0)', ' final  sum_   = ', sum_
 	!print '(a,z0)', ' final csum   = ', table%checksum
 
-	if (sum /= table%checksum) then
+	if (sum_ /= table%checksum) then
 		write(*,*) ERROR//'bad checksum for table ', table%tag
 		call exit(EXIT_FAILURE)
 	end if

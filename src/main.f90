@@ -79,7 +79,7 @@ program main
 	bg2 = new_color(int(z'2a7fffff',8))
 
 	! Allocate canvas and set background color.  TODO: constructor
-	width  = 800
+	width  = 600
 	height = 600
 	allocate(cv(width, height))
 	cv = bg
@@ -98,7 +98,7 @@ program main
 
 	! Auto set kern if not explicitly set, at least until I can parse
 	! advanceWidth
-	kern = [(120*i, i = 0, size(iglyphs) - 1)] + 20
+	kern = [(int(0.6*pix_per_em*i), i = 0, size(iglyphs) - 1)] + 20
 
 	do i = 1, size(iglyphs)
 		call draw_glyph(cv, fg , ttf, ttf%glyphs( iglyphs(i) ), &
@@ -106,7 +106,7 @@ program main
 	end do
 
 	iglyphs = [323, 345, 355, 355, 353] ! Καλλι
-	kern    = [ 10, 160, 270, 375, 470] + 20 ! manual kerning
+	kern    = [ 10, 160, 270, 375, 470] * pix_per_em/200 + 20 ! manual kerning
 
 	do i = 1, size(iglyphs)
 		call draw_glyph(cv, fg2, ttf, ttf%glyphs( iglyphs(i) ), &
