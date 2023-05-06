@@ -466,6 +466,8 @@ end function read_ttf
 
 function get_index(utf32, ttf) result(i)
 
+	! Get the glyph index of a utf32 codepoint in the ttf struct
+
 	integer(kind = 4) :: utf32
 	type(ttf_t), intent(in) :: ttf
 	integer(kind = 8) :: i
@@ -473,19 +475,13 @@ function get_index(utf32, ttf) result(i)
 	!********
 
 	integer :: seg
-	integer(kind = 4) :: codepoint
 
-	!print *, 'get_index("p") = ', get_index("p", ttf)
-
-	! TODO: remove unecessary variable codepoint
-
-	codepoint = utf32
-	!print *, 'codepoint = ', codepoint
+	!print *, 'utf32 = ', utf32
 
 	! Search for the first endCode that is greater than or equal to the
 	! character code to be mapped.  Could use a binary search
 	seg = 1
-	do while (ttf%cmap%end_code(seg) < codepoint)
+	do while (ttf%cmap%end_code(seg) < utf32)
 		seg = seg + 1
 	end do
 	!print *, 'seg = ', seg
@@ -498,11 +494,11 @@ function get_index(utf32, ttf) result(i)
 
 	if (ttf%cmap%id_range_offset(seg) /= 0) then
 		! TODO
-		write(*,*) ERROR//' non-zero id_range_offset not implemented'
+		write(*,*) ERROR//'non-zero id_range_offset not implemented'
 		call exit(-1)
 	end if
 
-	i = codepoint + ttf%cmap%id_delta(seg)
+	i = utf32 + ttf%cmap%id_delta(seg)
 
 end function get_index
 
@@ -727,7 +723,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
 
 	! TODO: render onto a subcanvas with a local origin at x == 0, then
 	! translate and blend that into the global canvas to avoid resolution
-	! issues at high x0
+	! issues at high x0.  Or just shift args for draw_line/draw_bezier2 calls
 	x = glyph%x
 	do i = 1, glyph%npts
 		x(1,i) = int( scaling * x(1,i) + x0)
@@ -1128,8 +1124,6 @@ end module cali_m
 !   * ppm round-trip done for simple rectangle images
 !   * cover multiple fonts
 ! - fill-in contours instead of just outlines
-! - parse cmap to get unicode (or ascii) to glyph index mapping
-!   * read string to typeset from file
 ! - other config args?  json input for app only
 !   * img size
 !   * fg, bg colors
@@ -1137,7 +1131,7 @@ end module cali_m
 !   * text filename (or directly as a string)
 !   * resolution / font size
 ! - compound glyphs
-! - typeset multiple letters and maybe multiple lines
+! - horizontal spacing
 !   * read advanceWidth from 'hmtx' table (and numOfLongHorMetrics from the
 !     'hhea' table) to get delta x for each glyph
 !   * more advanced kerning using the 'kern' table
