@@ -96,8 +96,8 @@ program main
 
 	write(*,*)
 	write(*,*) "********"
-	write(*,*) str(npass)//" tests passed"
-	write(*,*) str(nfail)//" tests failed"
+	write(*,*) to_str(npass)//" tests passed"
+	write(*,*) to_str(nfail)//" tests failed"
 	write(*,*) "********"
 	write(*,*)
 

@@ -56,11 +56,14 @@ program main
 
 	implicit none
 
+	character(len = :), allocatable :: str
+
 	double precision :: pix_per_em
 
 	integer :: i, height, width, line_height
 	integer(kind = 4) :: fg, fg2, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
+	integer(kind = 8) :: iglyph
 	integer, allocatable :: iglyphs(:), kern(:)
 
 	type(args_t) :: args
@@ -79,7 +82,7 @@ program main
 	bg2 = new_color(int(z'2a7fffff',8))
 
 	! Allocate canvas and set background color.  TODO: constructor
-	width  = 600
+	width  = 1000
 	height = 600
 	allocate(cv(width, height))
 	cv = bg
@@ -88,33 +91,57 @@ program main
 	pix_per_em = 200.d0
 	line_height = nint(1.2 * pix_per_em)
 
-	i = get_index("p", ttf)
-	print *, 'get_index("p") = ', i
+	i = get_index("P", ttf)
+	print *, 'get_index("P") = ', i
 
-	iglyphs = [83, 82, 74]            ! pog
-	iglyphs = [51, 82, 74]            ! Pog
-	!iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
-	!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
-	!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
-	!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
-	!iglyphs = [(i, i = 314, 337)]     ! \Alpha - \Omega
+	i = get_index("o", ttf)
+	print *, 'get_index("o") = ', i
 
-	! Auto set kern if not explicitly set, at least until I can parse
-	! advanceWidth
-	kern = [(int(0.6*pix_per_em*i), i = 0, size(iglyphs) - 1)] + 20
+	i = get_index("g", ttf)
+	print *, 'get_index("g") = ', i
 
-	do i = 1, size(iglyphs)
-		call draw_glyph(cv, fg , ttf, ttf%glyphs( iglyphs(i) ), &
-			kern(i), 1 * line_height, pix_per_em)
+	! String to be typeset
+	str = "Big"
+
+	do i = 1, len(str)
+		print *, str(i:i)
+		iglyph = get_index(str(i:i), ttf)  ! TODO: ASCII only.  utf not indexed by bytes
+		call draw_glyph(cv, fg , ttf, ttf%glyphs(iglyph), &
+			int(0.6*pix_per_em*i), 1 * line_height, pix_per_em)
 	end do
 
-	iglyphs = [323, 345, 355, 355, 353] ! Καλλι
-	kern    = [ 10, 160, 270, 375, 470] * pix_per_em/200 + 20 ! manual kerning
-
-	do i = 1, size(iglyphs)
-		call draw_glyph(cv, fg2, ttf, ttf%glyphs( iglyphs(i) ), &
-			kern(i), 2 * line_height, pix_per_em)
+	str = "chungus"
+	do i = 1, len(str)
+		print *, str(i:i)
+		iglyph = get_index(str(i:i), ttf)  ! TODO: ASCII only.  utf not indexed by bytes
+		call draw_glyph(cv, fg , ttf, ttf%glyphs(iglyph), &
+			int(0.6*pix_per_em*i), 2 * line_height, pix_per_em)
 	end do
+
+	!iglyphs = [83, 82, 74]            ! pog
+	!iglyphs = [51, 82, 74]            ! Pog
+	!!iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
+	!!iglyphs = [(i, i = 68, 68+26-1)]  ! [a-z]
+	!!iglyphs = [(i, i = 36, 36+26-1)]  ! [A-Z]
+	!!iglyphs = [(i, i = 345, 369)]     ! \alpha - \omega
+	!!iglyphs = [(i, i = 314, 337)]     ! \Alpha - \Omega
+
+	!! Auto set kern if not explicitly set, at least until I can parse
+	!! advanceWidth
+	!kern = [(int(0.6*pix_per_em*i), i = 0, size(iglyphs) - 1)] + 20
+
+	!do i = 1, size(iglyphs)
+	!	call draw_glyph(cv, fg , ttf, ttf%glyphs( iglyphs(i) ), &
+	!		kern(i), 1 * line_height, pix_per_em)
+	!end do
+
+	!iglyphs = [323, 345, 355, 355, 353] ! Καλλι
+	!kern    = [ 10, 160, 270, 375, 470] * pix_per_em/200 + 20 ! manual kerning
+
+	!do i = 1, size(iglyphs)
+	!	call draw_glyph(cv, fg2, ttf, ttf%glyphs( iglyphs(i) ), &
+	!		kern(i), 2 * line_height, pix_per_em)
+	!end do
 
 	call write_img(cv, 'test.ppm')
 

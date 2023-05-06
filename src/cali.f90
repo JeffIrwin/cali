@@ -980,7 +980,7 @@ subroutine write_img(cv, filename)
 	end if
 
 	write(iu) 'P6' //LINE_FEED
-	write(iu) str(size(cv, 1))//' '//str(size(cv, 2))//LINE_FEED
+	write(iu) to_str(size(cv, 1))//' '//to_str(size(cv, 2))//LINE_FEED
 	write(iu) '255'//LINE_FEED
 
 	do iy = 1, size(cv, 2)
@@ -1067,7 +1067,7 @@ end function read_img
 
 !===============================================================================
 
-function str(i)
+function to_str(i) result(str)
 
 	integer, intent(in) :: i
 	character(len = :), allocatable :: str
@@ -1079,7 +1079,7 @@ function str(i)
 	write(buffer, '(i0)') i
 	str = trim(buffer)
 
-end function str
+end function to_str
 
 !===============================================================================
 
