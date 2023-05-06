@@ -39,11 +39,11 @@ module utf8_m
 	integer(kind = 4), parameter :: &
 		utf_beg(NUTF_T) =        &
 		[               &
-			int(o'0'      ,4), &
-			int(o'0000'   ), &
-			int(o'0200'   ), &
-			int(o'04000'  ), &
-			int(o'0200000') &
+			int(o'0000000',4), &
+			int(o'0000000',4), &
+			int(o'0000200',4), &
+			int(o'0004000',4), &
+			int(o'0200000',4) &
 		]
 
 	! End of codepoint range
@@ -139,7 +139,7 @@ function to_cp(chr) result(codep)
 	integer :: i, bytes, shift
 
 	bytes = utf8_len(chr(1:1))
-	print * , 'bytes = ', bytes
+	!print * , 'bytes = ', bytes
 	if (bytes == 0) then
 		! TODO: parameterize -1 as bad codepoint.  Maybe 0 instead?
 		codep = -1
@@ -165,9 +165,9 @@ function to_cp_vec(utf8_in) result(cpvec)
 	integer :: i, j
 	integer(kind = 4) :: cp
 
-	print *, 'starting to_cp_vec()'
-	print *, 'len = ', len(utf8_in)
-	print *, ''
+	!print *, 'starting to_cp_vec()'
+	!print *, 'len = ', len(utf8_in)
+	!print *, ''
 
 	allocate(cpvec(len(utf8_in)))  ! worst-case size (all ASCII)
 
@@ -188,8 +188,6 @@ function to_cp_vec(utf8_in) result(cpvec)
 	i = 1
 	j = 1
 	do while (i <= len(utf8_in))
-		! TODO: this could probably be optimized by incrementing i by utf8_len
-		! instead of trying every single byte offset
 		cp = to_cp(utf8_in(i:))
 		cpvec(j) = cp
 
@@ -229,61 +227,6 @@ end function to_utf8_str
 !********
 
 end module utf8_m
-
-!!===========================================================================
-!
-!program main
-!
-!	use utf8_m
-!	implicit none
-!
-!	character(len = :), allocatable :: utf8_in, utf8
-!	integer(kind = 4), allocatable :: cpvec(:)
-!
-!	integer :: i, j, iu
-!
-!	! If these characters don't render correctly, try using nvim-qt.exe directly
-!	! in Windows (not WSL and not in terminal)
-!	utf8_in = "AöЖ€𝄞"
-!	utf8_in = "Καλλι"
-!	!utf8_in = "😀🔥💀🥵✔⚒🙀🥇⛩⚫🕧"  ! emoji
-!	!utf8_in = " 😀a🔥ab💀abc🥵abcd✔abcde⚒ 🙀 🥇 ⛩⚫ 🕧 "  ! emoji
-!
-!	!! Test cases from https://www.w3.org/2001/06/utf-8-test/UTF-8-demo.html
-!	!utf8_in = "∮ E⋅da = Q,  n → ∞, ∑ f(i) = ∏ g(i), ∀x∈ℝ: ⌈x⌉ = −⌊−x⌋, α ∧ ¬β = ¬(¬α ∨ β)"
-!	!utf8_in = "  ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),"
-!	!utf8_in = "  2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm"
-!	!utf8_in = "  ði ıntəˈnæʃənəl fəˈnɛtık əsoʊsiˈeıʃn"//LINE_FEED &
-!	!          //"  Y [ˈʏpsilɔn], Yen [jɛn], Yoga [ˈjoːgɑ]"
-!	!utf8_in = "  ((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈"
-!	!utf8_in = "‘single’ and “double” quotes"
-!	!utf8_in = "• ‚deutsche‘ „Anführungszeichen“"
-!	!utf8_in = "ASCII safety test: 1lI|, 0OD, 8B "
-!
-!	print *, 'utf8 in  = "'//utf8_in//'"'
-!	!print *, 'len(utf8_in) = ', len(utf8_in)  ! length in bytes
-!
-!	cpvec = to_cp_vec(utf8_in)
-!	print *, 'codepoint vector = '
-!	print '(z0)', cpvec
-!
-!	utf8 = to_utf8_str(cpvec)
-!	print *, 'utf8 out = "'//utf8//'"'
-!
-!	!print *, 'lens = ', len(utf8_in), len(utf8)
-!
-!	if (utf8_in == utf8) then
-!		write(*,*) 'Success!'
-!	else
-!		write(*,*) 'Error: utf8 string was not transcoded correctly'
-!		call exit(-1)
-!	end if
-!
-!	!open(newunit = iu, file = utf8_in)
-!	!write(iu, *) 'hello world, hallo welt'
-!	!close(iu)
-!
-!end program main
 
 !===========================================================================
 

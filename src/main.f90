@@ -58,7 +58,6 @@ program main
 	implicit none
 
 	character(len = :), allocatable :: utf8_str
-	character(len = :), allocatable :: utf8_in
 	integer(kind = 4), allocatable :: utf32_str(:)
 
 	double precision :: pix_per_em
@@ -67,7 +66,6 @@ program main
 	integer(kind = 4) :: fg, fg2, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
 	integer(kind = 8) :: iglyph
-	integer, allocatable :: iglyphs(:), kern(:)
 
 	type(args_t) :: args
 	type(ttf_t)  :: ttf
@@ -81,9 +79,8 @@ program main
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
 	fg2 = new_color(int(z'ffffffff',8))
-	!bg  = new_color(int(z'e8e6cbff',8))
-	bg  = new_color(int(z'cd67cdff',8))
-	bg2 = new_color(int(z'348934ff',8))
+	bg  = new_color(int(z'e8e6cbff',8))
+	bg2 = new_color(int(z'2a7fffff',8))
 
 	! Allocate canvas and set background color.  TODO: constructor
 	width  = 1000
@@ -97,16 +94,18 @@ program main
 
 	! String to be typeset
 	!utf8_str = "Καλλι "
-	utf8_in = "Καλλι"
-	!utf8_in = "Привет"
+	utf8_str = "Καλλι"
+	!utf8_str = "Привет"
 
 	! TODO: refactor as draw_str() fn
 
-	print *, 'utf8_in = ', utf8_in
-	print *, 'len = ', len(utf8_in)
-	utf32_str = to_cp_vec(utf8_in)
-	print *, 'utf32_str = ', utf32_str
-	print *, ''
+	!print *, 'utf8_str = ', utf8_str
+	!print *, 'len = ', len(utf8_str)
+
+	utf32_str = to_cp_vec(utf8_str)
+
+	!print *, 'utf32_str = ', utf32_str
+
 	do i = 1, size(utf32_str)
 		!print *, utf32_str(i)
 		iglyph = get_index(utf32_str(i), ttf)
@@ -131,59 +130,4 @@ program main
 end program main
 
 !===============================================================================
-
-!program main
-!
-!	use utf8_m
-!	implicit none
-!
-!	character(len = :), allocatable :: utf8_in, utf8
-!	integer(kind = 4), allocatable :: cpvec(:)
-!
-!	integer :: i, j, iu
-!
-!	! If these characters don't render correctly, try using nvim-qt.exe directly
-!	! in Windows (not WSL and not in terminal)
-!	utf8_in = "AöЖ€𝄞"
-!	utf8_in = "Καλλι"
-!	!utf8_in = "😀🔥💀🥵✔⚒🙀🥇⛩⚫🕧"  ! emoji
-!	!utf8_in = " 😀a🔥ab💀abc🥵abcd✔abcde⚒ 🙀 🥇 ⛩⚫ 🕧 "  ! emoji
-!
-!	!! Test cases from https://www.w3.org/2001/06/utf-8-test/UTF-8-demo.html
-!	!utf8_in = "∮ E⋅da = Q,  n → ∞, ∑ f(i) = ∏ g(i), ∀x∈ℝ: ⌈x⌉ = −⌊−x⌋, α ∧ ¬β = ¬(¬α ∨ β)"
-!	!utf8_in = "  ℕ ⊆ ℕ₀ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ, ⊥ < a ≠ b ≡ c ≤ d ≪ ⊤ ⇒ (A ⇔ B),"
-!	!utf8_in = "  2H₂ + O₂ ⇌ 2H₂O, R = 4.7 kΩ, ⌀ 200 mm"
-!	!utf8_in = "  ði ıntəˈnæʃənəl fəˈnɛtık əsoʊsiˈeıʃn"//LINE_FEED &
-!	!          //"  Y [ˈʏpsilɔn], Yen [jɛn], Yoga [ˈjoːgɑ]"
-!	!utf8_in = "  ((V⍳V)=⍳⍴V)/V←,V    ⌷←⍳→⍴∆∇⊃‾⍎⍕⌈"
-!	!utf8_in = "‘single’ and “double” quotes"
-!	!utf8_in = "• ‚deutsche‘ „Anführungszeichen“"
-!	!utf8_in = "ASCII safety test: 1lI|, 0OD, 8B "
-!
-!	print *, 'utf8 in  = "'//utf8_in//'"'
-!	!print *, 'len(utf8_in) = ', len(utf8_in)  ! length in bytes
-!
-!	cpvec = to_cp_vec(utf8_in)
-!	print *, 'codepoint vector = '
-!	print '(z0)', cpvec
-!
-!	utf8 = to_utf8_str(cpvec)
-!	print *, 'utf8 out = "'//utf8//'"'
-!
-!	!print *, 'lens = ', len(utf8_in), len(utf8)
-!
-!	if (utf8_in == utf8) then
-!		write(*,*) 'Success!'
-!	else
-!		write(*,*) 'Error: utf8 string was not transcoded correctly'
-!		call exit(-1)
-!	end if
-!
-!	!open(newunit = iu, file = utf8_in)
-!	!write(iu, *) 'hello world, hallo welt'
-!	!close(iu)
-!
-!end program main
-
-!===========================================================================
 

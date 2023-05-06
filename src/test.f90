@@ -94,6 +94,10 @@ program main
 	call test_ppm_1(npass, nfail)
 	call test_ppm_2(npass, nfail)
 
+	! TODO:
+	! - utf tests
+	! - typesetting tests after API is stable
+
 	write(*,*)
 	write(*,*) "********"
 	write(*,*) to_str(npass)//" tests passed"

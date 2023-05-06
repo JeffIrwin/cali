@@ -51,26 +51,13 @@ module cali_m
 	!********
 
 	type cmap_t
+
 		integer(kind = 8) :: fmt_, length, language, nseg_x2, search_range, &
 			entry_select, range_shift, platform_id, platform_sid, offset, &
 			reserved_pad
 
 		integer(kind = 8), allocatable :: end_code(:), start_code(:), &
 			id_delta(:), id_range_offset(:), glyph_index_array(:)
-
-	!UInt16	format	Format number is set to 4
-	!UInt16	length	Length of subtable in bytes
-	!UInt16	language	Language code (see above)
-	!UInt16	segCountX2	2 * segCount
-	!UInt16	searchRange	2 * (2**FLOOR(log2(segCount)))
-	!UInt16	entrySelector	log2(searchRange/2)
-	!UInt16	rangeShift	(2 * segCount) - searchRange
-	!UInt16	endCode[segCount]	Ending character code for each segment, last = 0xFFFF.
-	!UInt16	reservedPad	This value should be zero
-	!UInt16	startCode[segCount]	Starting character code for each segment
-	!UInt16	idDelta[segCount]	Delta for all character codes in segment
-	!UInt16	idRangeOffset[segCount]	Offset in bytes to glyph indexArray, or 0
-	!UInt16	glyphIndexArray[variable]	Glyph index array
 
 	end type cmap_t
 
@@ -385,16 +372,13 @@ function read_ttf(filename) result(ttf)
 	ttf%cmap%platform_sid = read_u16(iu)
 	ttf%cmap%offset       = read_u32(iu)
 
-	print *, 'cmap_vers       = ', ttf%cmap_vers
-	print *, 'ncmap_tables    = ', ttf%ncmap_tables
-	print *, 'platform_id     = ', ttf%cmap%platform_id
-	print *, 'platform_sid    = ', ttf%cmap%platform_sid
-	print *, 'cmap_sub_offset = ', ttf%cmap%offset
+	!print *, 'cmap_vers       = ', ttf%cmap_vers
+	!print *, 'ncmap_tables    = ', ttf%ncmap_tables
+	!print *, 'platform_id     = ', ttf%cmap%platform_id
+	!print *, 'platform_sid    = ', ttf%cmap%platform_sid
+	!print *, 'cmap_sub_offset = ', ttf%cmap%offset
 
-	!	integer :: fmt_, length, language, nseg_x2, search_range, &
-	!		entry_select, range_shift, platform_id, platform_sid, offset
-
-	! Jump to cmap sub offset relative to cmap_offset
+	! Jump to cmap subtable offset relative to cmap_offset
 	call fseek(iu, ttf%cmap_offset + ttf%cmap%offset, SEEK_ABS)
 	ttf%cmap%fmt_ = read_u16(iu)
 
@@ -409,10 +393,6 @@ function read_ttf(filename) result(ttf)
 	ttf%cmap%search_range = read_u16(iu)
 	ttf%cmap%entry_select = read_u16(iu)
 	ttf%cmap%range_shift = read_u16(iu)
-
-
-!		integer(kind = 8), allocatable :: end_code(:), start_code(:), &
-!			id_delta(:), id_range_offset(:), glyph_index_array(:)
 
 	allocate(ttf%cmap%end_code       ( ttf%cmap%nseg_x2 / 2 ))
 	allocate(ttf%cmap%start_code     ( ttf%cmap%nseg_x2 / 2 ))
@@ -431,47 +411,35 @@ function read_ttf(filename) result(ttf)
 		! "NOTE: All idDelta[i] arithmetic is modulo 65536." -- apple
 		ttf%cmap%id_delta(i) = read_u16(iu)
 		if (ttf%cmap%id_delta(i) /= 0) then
-			!ttf%cmap%id_delta(i) = ttf%cmap%id_delta(i) - int(z'ffff')
 			ttf%cmap%id_delta(i) = ttf%cmap%id_delta(i) - int(z'10000')
 		end if
 	end do
 	do i = 1, ttf%cmap%nseg_x2 / 2
 		ttf%cmap%id_range_offset(i) = read_u16(iu)
 	end do
+
+	!! TODO: what is size of glyph_index_array?  Need to find a font where
+	!! id_range_offset is non-zero for testing
 	!do i = 1, ???
 	!	ttf%cmap%glyph_index_array(i) = read_u16(iu)
 	!end do
 
-	print *, 'cmap fmt_         = ', ttf%cmap%fmt_
-	print *, 'cmap length       = ', ttf%cmap%length
-	print *, 'cmap language     = ', ttf%cmap%language
-	print *, 'cmap nseg_x2      = ', ttf%cmap%nseg_x2
-	print *, 'cmap search_range = ', ttf%cmap%search_range
-	print *, 'cmap entry_select = ', ttf%cmap%entry_select
-	print *, 'cmap range_shift  = ', ttf%cmap%range_shift
-	print *, 'cmap end_code = ', ttf%cmap%end_code
-	print *, ''
-	print *, 'cmap reserved_pad  = ', ttf%cmap%reserved_pad
-	print *, 'cmap start_code = ', ttf%cmap%start_code
-	print *, ''
-	print *, 'cmap id_delta = ', ttf%cmap%id_delta
-	print *, ''
-	print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
-	print *, ''
-
-	!UInt16	format	Format number is set to 4
-	!UInt16	length	Length of subtable in bytes
-	!UInt16	language	Language code (see above)
-	!UInt16	segCountX2	2 * segCount
-	!UInt16	searchRange	2 * (2**FLOOR(log2(segCount)))
-	!UInt16	entrySelector	log2(searchRange/2)
-	!UInt16	rangeShift	(2 * segCount) - searchRange
-	!UInt16	endCode[segCount]	Ending character code for each segment, last = 0xFFFF.
-	!UInt16	reservedPad	This value should be zero
-	!UInt16	startCode[segCount]	Starting character code for each segment
-	!UInt16	idDelta[segCount]	Delta for all character codes in segment
-	!UInt16	idRangeOffset[segCount]	Offset in bytes to glyph indexArray, or 0
-	!UInt16	glyphIndexArray[variable]	Glyph index array
+	!print *, 'cmap fmt_         = ', ttf%cmap%fmt_
+	!print *, 'cmap length       = ', ttf%cmap%length
+	!print *, 'cmap language     = ', ttf%cmap%language
+	!print *, 'cmap nseg_x2      = ', ttf%cmap%nseg_x2
+	!print *, 'cmap search_range = ', ttf%cmap%search_range
+	!print *, 'cmap entry_select = ', ttf%cmap%entry_select
+	!print *, 'cmap range_shift  = ', ttf%cmap%range_shift
+	!print *, 'cmap end_code = ', ttf%cmap%end_code
+	!print *, ''
+	!print *, 'cmap reserved_pad  = ', ttf%cmap%reserved_pad
+	!print *, 'cmap start_code = ', ttf%cmap%start_code
+	!print *, ''
+	!print *, 'cmap id_delta = ', ttf%cmap%id_delta
+	!print *, ''
+	!print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
+	!print *, ''
 
 	!********
 
@@ -498,7 +466,6 @@ end function read_ttf
 
 function get_index(utf32, ttf) result(i)
 
-	!character(len = *), intent(in) :: ch
 	integer(kind = 4) :: utf32
 	type(ttf_t), intent(in) :: ttf
 	integer(kind = 8) :: i
@@ -512,9 +479,8 @@ function get_index(utf32, ttf) result(i)
 
 	! TODO: remove unecessary variable codepoint
 
-	!codepoint = iachar(ch)  ! ASCII only
 	codepoint = utf32
-	print *, 'codepoint = ', codepoint
+	!print *, 'codepoint = ', codepoint
 
 	! Search for the first endCode that is greater than or equal to the
 	! character code to be mapped.  Could use a binary search
@@ -522,7 +488,7 @@ function get_index(utf32, ttf) result(i)
 	do while (ttf%cmap%end_code(seg) < codepoint)
 		seg = seg + 1
 	end do
-	print *, 'seg = ', seg
+	!print *, 'seg = ', seg
 
 	if (ttf%cmap%start_code(seg) > ttf%cmap%end_code(seg)) then
 		! Missing character glyph
@@ -536,7 +502,6 @@ function get_index(utf32, ttf) result(i)
 		call exit(-1)
 	end if
 
-	!i = codepoint + ttf%cmap%id_delta(seg) - 1
 	i = codepoint + ttf%cmap%id_delta(seg)
 
 end function get_index
