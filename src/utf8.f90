@@ -120,11 +120,11 @@ function to_utf8(cp) result(ret)
 	bytes = codepoint_len(cp)
 	allocate(character(len = bytes) :: ret)
 	shift = utf_bits(1) * (bytes - 1)
-	ret(1:1) =     achar(ior(iand(ishft(cp, -shift), utf_mask(bytes+1)), &
+	ret(1:1) =     achar(ior(iand(ishft(cp, -shift), int(utf_mask(bytes+1),4)), &
 			utf_lead(bytes+1)))
 	do i = 2, bytes
 		shift = shift - utf_bits(1)
-		ret(i:i) = achar(ior(iand(ishft(cp, -shift), utf_mask(1)), &
+		ret(i:i) = achar(ior(iand(ishft(cp, -shift), int(utf_mask(1),4)), &
 			utf_lead(1)))
 	end do
 end function to_utf8
@@ -133,7 +133,7 @@ end function to_utf8
 
 ! TODO: rename to_utf32()?
 function to_cp(chr) result(codep)
-	character(len = 4), intent(in) :: chr
+	character(len = *), intent(in) :: chr
 	integer(kind = 4) :: codep
 	!********
 	integer :: i, bytes, shift

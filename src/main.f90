@@ -97,7 +97,7 @@ program main
 	! String to be typeset
 	!utf8_str = "Καλλι "
 	utf8_in = "Καλλι"
-	!utf8_in = "привет"
+	utf8_in = "Привет"
 
 	! TODO: refactor as draw_str() fn
 
@@ -110,7 +110,7 @@ program main
 		!print *, utf32_str(i)
 		iglyph = get_index(utf32_str(i), ttf)
 		call draw_glyph(cv, fg , ttf, ttf%glyphs(iglyph), &
-			int(0.6*pix_per_em*i), 1 * line_height, pix_per_em)
+			int(0.7*pix_per_em*i), 1 * line_height, pix_per_em)
 	end do
 
 	!utf8_str = "graph"
