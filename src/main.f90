@@ -58,14 +58,13 @@ program main
 	implicit none
 
 	character(len = :), allocatable :: utf8_str
-	integer(kind = 4), allocatable :: utf32_str(:)
+	integer(kind  = 4), allocatable :: utf32_str(:)
 
 	double precision :: pix_per_em
 
-	integer :: i, height, width, line_height
+	integer :: i, height, width, line_height, lmargin
 	integer(kind = 4) :: fg, fg2, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
-	integer(kind = 8) :: iglyph
 
 	type(args_t) :: args
 	type(ttf_t)  :: ttf
@@ -91,35 +90,18 @@ program main
 
 	pix_per_em = 200.d0
 	line_height = nint(1.2 * pix_per_em)
+	lmargin = 20
 
 	! String to be typeset
-	!utf8_str = "Καλλι "
 	utf8_str = "Καλλι"
 	!utf8_str = "Привет"
 
 	! TODO: refactor as draw_str() fn
 
-	!print *, 'utf8_str = ', utf8_str
-	!print *, 'len = ', len(utf8_str)
+	call draw_str(cv, fg , ttf, utf8_str, lmargin, 1 * line_height, pix_per_em)
 
-	utf32_str = to_cp_vec(utf8_str)
-
-	!print *, 'utf32_str = ', utf32_str
-
-	do i = 1, size(utf32_str)
-		!print *, utf32_str(i)
-		iglyph = get_index(utf32_str(i), ttf)
-		call draw_glyph(cv, fg , ttf, ttf%glyphs(iglyph), &
-			int(0.7*pix_per_em*i), 1 * line_height, pix_per_em)
-	end do
-
-	!utf8_str = "graph"
-	!do i = 1, len(utf8_str)
-	!	print *, utf8_str(i:i)
-	!	iglyph = get_index(utf8_str(i:i), ttf)  ! TODO: ASCII only.  utf not indexed by bytes
-	!	call draw_glyph(cv, fg , ttf, ttf%glyphs(iglyph), &
-	!		int(0.6*pix_per_em*i), 2 * line_height, pix_per_em)
-	!end do
+	utf8_str = "Graph"
+	call draw_str(cv, fg2, ttf, utf8_str, lmargin, 2 * line_height, pix_per_em)
 
 	call write_img(cv, 'test.ppm')
 

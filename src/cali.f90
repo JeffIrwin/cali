@@ -30,7 +30,7 @@ module cali_m
 			COLOR_RESET        = ESC//'[0m'
 
 	character(len = *), parameter :: &
-		ERROR = FG_BOLD_BRIGHT_RED//'Error'//color_reset//': '
+		ERROR = FG_BOLD_BRIGHT_RED//'Error'//COLOR_RESET//': '
 
 	!********
 
@@ -644,9 +644,53 @@ end function read_glyph
 
 !===============================================================================
 
+subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
+
+	! Draw a string starting at pixel x0 left, y0 bottom
+
+	use utf8_m
+
+	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+	integer(kind = 4), intent(in) :: color
+
+	type(ttf_t  ), intent(in) :: ttf
+	character(len = :), allocatable :: utf8_str
+
+	! TODO: maybe encapsulate x0, y0, scaling as more general transform?
+	integer, intent(in) :: x0, y0 ! translation
+	double precision, intent(in) :: pix_per_em
+
+	!********
+
+	integer :: i
+	integer(kind  = 4), allocatable :: utf32_str(:)
+	integer(kind = 8) :: iglyph
+
+	write(*,*) 'Drawing string "'//utf8_str//'" ...'
+
+	!call draw_str(cv, fg, ttf, utf8_str, 1 * line_height, pix_per_em)
+
+	!print *, 'utf8_str = ', utf8_str
+	!print *, 'len = ', len(utf8_str)
+
+	utf32_str = to_cp_vec(utf8_str)
+
+	!print *, 'utf32_str = ', utf32_str
+
+	do i = 1, size(utf32_str)
+		!print *, utf32_str(i)
+		iglyph = get_index(utf32_str(i), ttf)
+		call draw_glyph(cv, color , ttf, ttf%glyphs(iglyph), &
+			x0 + int(0.7*pix_per_em*(i-1)), y0, pix_per_em)
+	end do
+
+end subroutine draw_str
+
+!===============================================================================
+
 subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
 
-	! Draw a glyph transated horizontally by x0
+	! Draw a glyph translated horizontally by x0
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
