@@ -88,6 +88,9 @@ program main
 	pix_per_em = 200.d0
 	line_height = nint(1.2 * pix_per_em)
 
+	i = get_index("p", ttf)
+	print *, 'get_index("p") = ', i
+
 	iglyphs = [83, 82, 74]            ! pog
 	iglyphs = [51, 82, 74]            ! Pog
 	!iglyphs = [90, 72, 76, 86]        ! weis (try cooper black font)
