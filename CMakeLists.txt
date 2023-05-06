@@ -10,18 +10,20 @@ project(${PROJECT} Fortran)
 
 #=======================================================================
 
-add_compile_options("-Wall")
-add_compile_options("-Wextra")
-add_compile_options("-fopenmp")
-add_compile_options("-Wno-tabs")
-add_compile_options("-Wno-maybe-uninitialized")
+## TODO: one of these compiler flags is breaking the unicode functionality. Figure out which one and why
 
-#add_compile_options("-std=gnu")
-#add_compile_options("-pedantic") # pedantic warns about convert='big_endian'
-
-# TODO: debug-only.  For release use -O3
-add_compile_options("-fbounds-check")
-add_compile_options("-fbacktrace")
+#add_compile_options("-Wall")
+#add_compile_options("-Wextra")
+#add_compile_options("-fopenmp")
+#add_compile_options("-Wno-tabs")
+#add_compile_options("-Wno-maybe-uninitialized")
+#
+##add_compile_options("-std=gnu")
+##add_compile_options("-pedantic") # pedantic warns about convert='big_endian'
+#
+## TODO: debug-only.  For release use -O3
+#add_compile_options("-fbounds-check")
+#add_compile_options("-fbacktrace")
 
 #=======================================================================
 
@@ -31,6 +33,7 @@ set(SRC_DIR "src")
 
 set(LIB "${PROJECT}")
 set(LIB_SRC
+	${SRC_DIR}/utf8.f90
 	${SRC_DIR}/cali.f90
 	)
 add_library(${LIB} STATIC ${LIB_SRC})

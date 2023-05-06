@@ -496,9 +496,10 @@ end function read_ttf
 
 !===============================================================================
 
-function get_index(ch, ttf) result(i)
+function get_index(utf32, ttf) result(i)
 
-	character(len = *), intent(in) :: ch
+	!character(len = *), intent(in) :: ch
+	integer(kind = 4) :: utf32
 	type(ttf_t), intent(in) :: ttf
 	integer(kind = 8) :: i
 
@@ -509,8 +510,10 @@ function get_index(ch, ttf) result(i)
 
 	!print *, 'get_index("p") = ', get_index("p", ttf)
 
-	! TODO: unicode
-	codepoint = iachar(ch)
+	! TODO: remove unecessary variable codepoint
+
+	!codepoint = iachar(ch)  ! ASCII only
+	codepoint = utf32
 	print *, 'codepoint = ', codepoint
 
 	! Search for the first endCode that is greater than or equal to the
