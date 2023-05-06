@@ -97,7 +97,7 @@ program main
 	! String to be typeset
 	!utf8_str = "Καλλι "
 	utf8_in = "Καλλι"
-	utf8_in = "Привет"
+	!utf8_in = "Привет"
 
 	! TODO: refactor as draw_str() fn
 

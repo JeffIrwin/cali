@@ -99,7 +99,7 @@ function utf8_len(ch) result(len)
 	integer :: i
 	len = 0
 	do i = 1, NUTF_T
-		if (iand(iachar(ch), ieor(utf_mask(i), int(z'ff',2))) == utf_lead(i)) then
+		if (iand(iachar(ch), int(ieor(utf_mask(i), int(z'ff',2)),4)) == utf_lead(i)) then
 			exit
 		end if
 		len = len + 1
@@ -121,11 +121,11 @@ function to_utf8(cp) result(ret)
 	allocate(character(len = bytes) :: ret)
 	shift = utf_bits(1) * (bytes - 1)
 	ret(1:1) =     achar(ior(iand(ishft(cp, -shift), int(utf_mask(bytes+1),4)), &
-			utf_lead(bytes+1)))
+			int(utf_lead(bytes+1),4)))
 	do i = 2, bytes
 		shift = shift - utf_bits(1)
 		ret(i:i) = achar(ior(iand(ishft(cp, -shift), int(utf_mask(1),4)), &
-			utf_lead(1)))
+			int(utf_lead(1),4)))
 	end do
 end function to_utf8
 
@@ -171,35 +171,35 @@ function to_cp_vec(utf8_in) result(cpvec)
 
 	allocate(cpvec(len(utf8_in)))  ! worst-case size (all ASCII)
 
-	i = 0
-	j = 0
-	do while (i < len(utf8_in))
-		! This could probably be optimized by incrementing i by utf8_len
-		! instead of trying every single byte offset
-		i = i + 1
-		cp = to_cp(utf8_in(i:))
-		if (cp /= -1) then
-			j = j + 1
-			cpvec(j) = cp
-		end if
-	end do
-	cpvec = cpvec(1:j) ! trim
-
-	!i = 1
-	!j = 1
-	!do while (i <= len(utf8_in))
-	!	! TODO: this could probably be optimized by incrementing i by utf8_len
+	!i = 0
+	!j = 0
+	!do while (i < len(utf8_in))
+	!	! This could probably be optimized by incrementing i by utf8_len
 	!	! instead of trying every single byte offset
+	!	i = i + 1
 	!	cp = to_cp(utf8_in(i:))
-	!	cpvec(j) = cp
-
-	!	! If we changed to_cp() to return len, this extra len call wouldn't be
-	!	! required
-	!	i = i + codepoint_len(cp)
-
-	!	j = j + 1
+	!	if (cp /= -1) then
+	!		j = j + 1
+	!		cpvec(j) = cp
+	!	end if
 	!end do
-	!cpvec = cpvec(1: j-1) ! trim
+	!cpvec = cpvec(1:j) ! trim
+
+	i = 1
+	j = 1
+	do while (i <= len(utf8_in))
+		! TODO: this could probably be optimized by incrementing i by utf8_len
+		! instead of trying every single byte offset
+		cp = to_cp(utf8_in(i:))
+		cpvec(j) = cp
+
+		! If we changed to_cp() to return len, this extra len call wouldn't be
+		! required
+		i = i + codepoint_len(cp)
+
+		j = j + 1
+	end do
+	cpvec = cpvec(1: j-1) ! trim
 
 end function to_cp_vec
 
@@ -210,7 +210,7 @@ function to_utf8_str(cpvec) result(utf8_str)
 	character(len = :), allocatable :: utf8_str
 	!********
 	character(len = :), allocatable :: utf8
-	integer :: i, j, j0
+	integer :: i, j
 
 	! Worst-case size (all 4-byte chars)
 	allocate(character(len = 4 * size(cpvec)) :: utf8_str)
