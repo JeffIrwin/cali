@@ -17,44 +17,44 @@ module utf8_m
 	integer(kind = 2), parameter :: &
 		utf_mask(NUTF_T) =        &
 		[                &
-			b'00111111', &
-			b'01111111', &
-			b'00011111', &
-			b'00001111', &
-			b'00000111'  &
+			int(b'00111111',2), &
+			int(b'01111111',2), &
+			int(b'00011111',2), &
+			int(b'00001111',2), &
+			int(b'00000111',2)  &
 		]
 
 	! Start bytes of current char in utf-8 encoded character
 	integer(kind = 2), parameter :: &
 		utf_lead(NUTF_T) =        &
 		[                &
-			b'10000000', &
-			b'00000000', &
-			b'11000000', &
-			b'11100000', &
-			b'11110000'  &
+			int(b'10000000',2), &
+			int(b'00000000',2), &
+			int(b'11000000',2), &
+			int(b'11100000',2), &
+			int(b'11110000',2)  &
 		]
 
 	! Beginning of codepoint range
 	integer(kind = 4), parameter :: &
 		utf_beg(NUTF_T) =        &
 		[               &
-			o'0'      , &
-			o'0000'   , &
-			o'0200'   , &
-			o'04000'  , &
-			o'0200000' &
+			int(o'0'      ,4), &
+			int(o'0000'   ), &
+			int(o'0200'   ), &
+			int(o'04000'  ), &
+			int(o'0200000') &
 		]
 
 	! End of codepoint range
 	integer(kind = 4), parameter :: &
 		utf_end(NUTF_T) =         &
 		[                &
-			o'0'       , &
-			o'0177'    , &
-			o'03777'   , &
-			o'0177777' , &
-			o'04177777'  &
+			int(o'0'       ,4), &
+			int(o'0177'    ,4), &
+			int(o'03777'   ,4), &
+			int(o'0177777' ,4), &
+			int(o'04177777',4)  &
 		]
 
 	! The number of bits from the codepoint that fits in char
@@ -99,7 +99,7 @@ function utf8_len(ch) result(len)
 	integer :: i
 	len = 0
 	do i = 1, NUTF_T
-		if (iand(iachar(ch), ieor(utf_mask(i), z'ff')) == utf_lead(i)) then
+		if (iand(iachar(ch), ieor(utf_mask(i), int(z'ff',2))) == utf_lead(i)) then
 			exit
 		end if
 		len = len + 1

@@ -96,15 +96,16 @@ program main
 
 	! String to be typeset
 	!utf8_str = "Καλλι "
-	!utf8_in = "Καλλι"
-	utf8_in = "привет"
+	utf8_in = "Καλλι"
+	!utf8_in = "привет"
+
+	! TODO: refactor as draw_str() fn
 
 	print *, 'utf8_in = ', utf8_in
 	print *, 'len = ', len(utf8_in)
 	utf32_str = to_cp_vec(utf8_in)
 	print *, 'utf32_str = ', utf32_str
 	print *, ''
-
 	do i = 1, size(utf32_str)
 		!print *, utf32_str(i)
 		iglyph = get_index(utf32_str(i), ttf)
