@@ -33,8 +33,8 @@ set(SRC_DIR "src")
 
 set(LIB "${PROJECT}")
 set(LIB_SRC
-	${SRC_DIR}/utf8.f90
 	${SRC_DIR}/cali.f90
+	${SRC_DIR}/utf.f90
 	)
 add_library(${LIB} STATIC ${LIB_SRC})
 set(LINK_LIBS "${LIB}")

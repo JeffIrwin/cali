@@ -93,12 +93,12 @@ program main
 
 	! String to be typeset
 	str = "Καλλι"
-	str = "Привет"
+	!str = "Привет"
 
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "Graph"
-	str = "World"
+	!str = "World"
 	call draw_str(cv, fg2, ttf, str, lmargin, 2 * line_height, pix_per_em)
 
 	call write_img(cv, 'test.ppm')
