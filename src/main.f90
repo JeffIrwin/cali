@@ -81,16 +81,15 @@ program main
 	bg  = new_color(int(z'e8e6cbff',8))
 	bg2 = fg3
 
-	! Allocate canvas and set background color.  TODO: constructor
-	width  = 800
-	height = 945
-	allocate(cv(width, height))
-	cv = bg
+	cv = new_canvas(800, 945, bg)
 	cv(:, 631:) = bg2
 
 	pix_per_em = 100.d0
 	line_height = nint(1.2 * pix_per_em)
 	lmargin = 20
+
+	!str = "a b!"
+	!call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "Computer Modern"
 	!str = "Καλλι"

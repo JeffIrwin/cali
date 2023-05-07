@@ -92,14 +92,14 @@ end function utf32_len
 
 !********
 
-function utf8_len(ch) result(len)
-	character, intent(in) :: ch
+function utf8_len(char8) result(len)
+	character, intent(in) :: char8
 	integer :: len
 	!********
 	integer :: i
 	len = 0
 	do i = 1, NUTF_T
-		if (iand(iachar(ch), int(ieor(utf_mask(i), int(z'ff',2)),4)) == utf_lead(i)) then
+		if (iand(iachar(char8), int(ieor(utf_mask(i), int(z'ff',2)),4)) == utf_lead(i)) then
 			exit
 		end if
 		len = len + 1
@@ -158,38 +158,24 @@ end function to_char32
 
 !********
 
-function to_utf32(utf8_in) result(utf32)
+function to_utf32(utf8) result(utf32)
 	! Convert utf8 string to utf32 string
-	character(len = *), intent(in) :: utf8_in
+	character(len = *), intent(in) :: utf8
 	integer(kind = 4), allocatable :: utf32(:)
 	!********
 	integer :: i, j
 	integer(kind = 4) :: char32
 
 	!print *, 'starting to_utf32()'
-	!print *, 'len = ', len(utf8_in)
+	!print *, 'len = ', len(utf8)
 	!print *, ''
 
-	allocate(utf32(len(utf8_in)))  ! worst-case size (all ASCII)
-
-	!i = 0
-	!j = 0
-	!do while (i < len(utf8_in))
-	!	! This could probably be optimized by incrementing i by utf8_len
-	!	! instead of trying every single byte offset
-	!	i = i + 1
-	!	char32 = to_char32(utf8_in(i:))
-	!	if (char32 /= -1) then
-	!		j = j + 1
-	!		utf32(j) = char32
-	!	end if
-	!end do
-	!utf32 = utf32(1:j) ! trim
+	allocate(utf32(len(utf8)))  ! worst-case size (all ASCII)
 
 	i = 1
 	j = 1
-	do while (i <= len(utf8_in))
-		char32 = to_char32(utf8_in(i:))
+	do while (i <= len(utf8))
+		char32 = to_char32(utf8(i:))
 		utf32(j) = char32
 
 		! If we changed to_char32() to return len, this extra len call wouldn't be

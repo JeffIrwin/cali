@@ -482,7 +482,7 @@ function get_index(utf32, ttf) result(i)
 
 	integer :: seg
 
-	!print *, 'utf32 = ', utf32
+	print '(a,z0)', 'utf32 = U+', utf32
 
 	! Search for the first endCode that is greater than or equal to the
 	! character code to be mapped.  Could use a binary search
@@ -514,6 +514,7 @@ function get_index(utf32, ttf) result(i)
 	end if
 
 	i = utf32 + ttf%cmap%id_delta(seg)
+	print *, 'glyph index = ', i
 
 end function get_index
 
@@ -547,7 +548,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	end if
 	offset = offset + ttf%glyf_offset
 	call fseek(iu, offset, SEEK_ABS)
-	!print '(a,z0)', ' glyph offset = ', offset
+	print '(a,z0)', ' glyph offset = ', offset
 
 	glyph%ncontours = read_i16(iu)
 	!print *, 'ncontours = ', glyph%ncontours
@@ -557,10 +558,10 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	glyph%xmax = read_fword(iu)
 	glyph%ymax = read_fword(iu)
 
-	!print *, "xmin = ", glyph%xmin
-	!print *, "ymin = ", glyph%ymin
-	!print *, "xmax = ", glyph%xmax
-	!print *, "ymax = ", glyph%ymax
+	print *, "xmin = ", glyph%xmin
+	print *, "ymin = ", glyph%ymin
+	print *, "xmax = ", glyph%xmax
+	print *, "ymax = ", glyph%ymax
 
 	if (glyph%ncontours < 0) then
 		return
@@ -650,6 +651,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	!print *, 'x, y = '
 	!print '(2i6)', glyph%x
+	print *, ''
 
 end function read_glyph
 
@@ -727,9 +729,9 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
 		call exit(EXIT_FAILURE)
 	end if
 
-	!print *, 'npts      = ', glyph%npts
-	!print *, 'ncontours = ', glyph%ncontours
-	!print *, 'end_pts   = ', glyph%end_pts
+	print *, 'npts      = ', glyph%npts
+	print *, 'ncontours = ', glyph%ncontours
+	print *, 'end_pts   = ', glyph%end_pts
 	!print *, 'x = '
 	!print '(2i6)', glyph%x
 
@@ -1120,6 +1122,19 @@ function i64_to_str(i) result(str)
 	str = trim(buffer)
 
 end function i64_to_str
+
+!===============================================================================
+
+function new_canvas(width, height, bg_color) result(cv)
+
+	integer, intent(in) :: width, height
+	integer(kind = 4), intent(in) :: bg_color
+	integer(kind = 4), allocatable :: cv(:,:) ! canvas
+
+	allocate(cv(width, height))
+	cv = bg_color
+
+end function new_canvas
 
 !===============================================================================
 

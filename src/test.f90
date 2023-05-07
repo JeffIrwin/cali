@@ -112,7 +112,7 @@ subroutine test_ppm_1(npass, nfail)
 	character(len = *), parameter :: ppm_filename = "build/test-1.ppm"
 	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
-	allocate(cv(3,2))
+	cv = new_canvas(3, 2, new_color(int(z"000000ff",8)))
 
 	cv(1,1) = new_color(int(z"ff0000ff",8))
 	cv(2,1) = new_color(int(z"00ff00ff",8))
@@ -145,9 +145,8 @@ subroutine test_ppm_2(npass, nfail)
 	character(len = *), parameter :: ppm_filename = "build/test-2.ppm"
 	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
-	allocate(cv(300,200))
+	cv = new_canvas(300, 200, new_color(int(z"232323ff",8)))
 
-	cv                     = new_color(int(z"232323ff",8))
 	cv( 10: 200,  10: 150) = new_color(int(z"bc4523ff",8))
 	cv(100: 290,  50: 190) = new_color(int(z"12fe09ff",8))
 	cv(110: 190,  70: 130) = new_color(int(z"7638adff",8))
