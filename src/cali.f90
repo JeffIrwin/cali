@@ -489,11 +489,20 @@ function get_index(utf32, ttf) result(i)
 	seg = 1
 	do while (ttf%cmap%end_code(seg) < utf32)
 		seg = seg + 1
+		if (seg > ttf%cmap%nseg_x2 / 2) then
+			! Missing character glyph
+			i = 0
+			return
+		end if
 	end do
 	!print *, 'seg = ', seg
 
 	if (ttf%cmap%start_code(seg) > ttf%cmap%end_code(seg)) then
-		! Missing character glyph
+		i = 0
+		return
+	end if
+
+	if (ttf%cmap%start_code(seg) > utf32) then
 		i = 0
 		return
 	end if
@@ -503,8 +512,6 @@ function get_index(utf32, ttf) result(i)
 		write(*,*) ERROR//'non-zero id_range_offset not implemented'
 		call exit(-1)
 	end if
-
-	! TODO: verify ttf%cmap%start_code(seg) <= utf32
 
 	i = utf32 + ttf%cmap%id_delta(seg)
 

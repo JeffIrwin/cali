@@ -98,6 +98,7 @@ program main
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "Aa Ee Rr"
+	!str = "Aa 🔥Ee Rr"
 	call draw_str(cv, fg , ttf, str, lmargin, 2 * line_height, pix_per_em)
 
 	str = "t"
