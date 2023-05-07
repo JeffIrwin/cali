@@ -19,3 +19,5 @@ Article about on-curve vs off-curve points for TrueType outlines: https://www.tr
 
 Freya Holmér's video on splines: https://www.youtube.com/watch?v=jvPPXbo87ds
 
+UTF-8 transcoding: https://rosettacode.org/wiki/UTF-8_encode_and_decode
+

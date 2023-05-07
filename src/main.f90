@@ -62,7 +62,7 @@ program main
 	double precision :: pix_per_em
 
 	integer :: height, width, line_height, lmargin
-	integer(kind = 4) :: fg, fg2, bg, bg2
+	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
 
 	type(args_t) :: args
@@ -77,29 +77,34 @@ program main
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
 	fg2 = new_color(int(z'ffffffff',8))
+	fg3 = new_color(int(z'2a7fffff',8))
 	bg  = new_color(int(z'e8e6cbff',8))
-	bg2 = new_color(int(z'2a7fffff',8))
+	bg2 = fg3
 
 	! Allocate canvas and set background color.  TODO: constructor
-	width  = 1000
-	height = 600
+	width  = 800
+	height = 945
 	allocate(cv(width, height))
 	cv = bg
-	cv(:, 300:) = bg2
+	cv(:, 631:) = bg2
 
-	pix_per_em = 200.d0
+	pix_per_em = 100.d0
 	line_height = nint(1.2 * pix_per_em)
 	lmargin = 20
 
-	! String to be typeset
-	str = "Καλλι"
+	str = "Computer Modern"
+	!str = "Καλλι"
 	!str = "Привет"
-
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	str = "Graph"
-	!str = "World"
-	call draw_str(cv, fg2, ttf, str, lmargin, 2 * line_height, pix_per_em)
+	str = "Aa Ee Rr"
+	call draw_str(cv, fg , ttf, str, lmargin, 2 * line_height, pix_per_em)
+
+	str = "t"
+	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)
+
+	str = "Matrix"
+	call draw_str(cv, fg3, ttf, str, 450, 5 * line_height, pix_per_em)
 
 	call write_img(cv, 'test.ppm')
 

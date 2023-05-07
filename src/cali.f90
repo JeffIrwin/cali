@@ -90,6 +90,11 @@ module cali_m
 
 	!********
 
+	interface to_str
+		procedure :: i32_to_str
+		procedure :: i64_to_str
+	end interface
+
 contains
 
 !===============================================================================
@@ -381,6 +386,7 @@ function read_ttf(filename) result(ttf)
 	! Jump to cmap subtable offset relative to cmap_offset
 	call fseek(iu, ttf%cmap_offset + ttf%cmap%offset, SEEK_ABS)
 	ttf%cmap%fmt_ = read_u16(iu)
+	write(*,*) ' cmap format = '//to_str(ttf%cmap%fmt_)
 
 	if (ttf%cmap%fmt_ /= 4) then
 		write(*,*) ERROR//'only cmap format 4 is supported'
@@ -497,6 +503,8 @@ function get_index(utf32, ttf) result(i)
 		write(*,*) ERROR//'non-zero id_range_offset not implemented'
 		call exit(-1)
 	end if
+
+	! TODO: verify ttf%cmap%start_code(seg) <= utf32
 
 	i = utf32 + ttf%cmap%id_delta(seg)
 
@@ -1076,9 +1084,9 @@ end function read_img
 
 !===============================================================================
 
-function to_str(i) result(str)
+function i32_to_str(i) result(str)
 
-	integer, intent(in) :: i
+	integer(kind = 4), intent(in) :: i
 	character(len = :), allocatable :: str
 
 	!********
@@ -1088,7 +1096,23 @@ function to_str(i) result(str)
 	write(buffer, '(i0)') i
 	str = trim(buffer)
 
-end function to_str
+end function i32_to_str
+
+!===============================================================================
+
+function i64_to_str(i) result(str)
+
+	integer(kind = 8), intent(in) :: i
+	character(len = :), allocatable :: str
+
+	!********
+
+	character(len = 64) :: buffer
+
+	write(buffer, '(i0)') i
+	str = trim(buffer)
+
+end function i64_to_str
 
 !===============================================================================
 
@@ -1135,6 +1159,7 @@ end module cali_m
 !   * read advanceWidth from 'hmtx' table (and numOfLongHorMetrics from the
 !     'hhea' table) to get delta x for each glyph
 !   * more advanced kerning using the 'kern' table
+! - ligatures
 ! - anti-aliasing?  doubtful
 ! - vector output format, e.g. ps, pdf, or svg?
 

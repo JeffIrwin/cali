@@ -20,21 +20,31 @@ subroutine test_utf(npass, nfail)
 
 	!********
 
+	!character(len = *, dimension = *) :: strs = &
+	character(len = *), parameter :: strs(*) = &
+		[ &
+			"Hello             ", &
+			"021324354657      ", &
+			"Καλλι        "     , &
+			"∮ E⋅da        "    , &
+			"გთხოვთ"      , &
+			"Привет      "        &
+		]
+
+	integer :: i
+
 	write(*,*) "testing utf ..."
 
-	! TODO: array, more tests
+	do i = 1, size(strs, 1)
+		print *, 'str = ', strs(i)
 
-	if ("Καλλι" == to_utf8(to_utf32("Καλλι"))) then
-		npass = npass + 1
-	else
-		nfail = nfail + 1
-	end if
+		if (strs(i) == to_utf8(to_utf32(strs(i)))) then
+			npass = npass + 1
+		else
+			nfail = nfail + 1
+		end if
 
-	if ("Привет" == to_utf8(to_utf32("Привет"))) then
-		npass = npass + 1
-	else
-		nfail = nfail + 1
-	end if
+	end do
 
 end subroutine test_utf
 
