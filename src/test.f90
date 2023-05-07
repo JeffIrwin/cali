@@ -14,7 +14,7 @@ contains
 
 subroutine test_utf(npass, nfail)
 
-	! Round-trip write/read test for a simple 3x2 pixel image
+	! Round-trip utf-8 to utf-32 and back to utf-8 testing
 
 	integer, intent(inout) :: npass, nfail
 
@@ -27,16 +27,16 @@ subroutine test_utf(npass, nfail)
 			"021324354657      ", &
 			"Καλλι        "     , &
 			"∮ E⋅da        "    , &
-			"გთხოვთ"      , &
+			"გთხოვთ"            , &
 			"Привет      "        &
 		]
 
 	integer :: i
 
-	write(*,*) "testing utf ..."
+	write(*,*) "testing round-trip utf ..."
 
 	do i = 1, size(strs, 1)
-		print *, 'str = ', strs(i)
+		!print *, 'str = ', strs(i)
 
 		if (strs(i) == to_utf8(to_utf32(strs(i)))) then
 			npass = npass + 1
@@ -47,6 +47,57 @@ subroutine test_utf(npass, nfail)
 	end do
 
 end subroutine test_utf
+
+!===============================================================================
+
+subroutine test_to_utf_32(npass, nfail)
+
+	! One-way utf-8 to utf-32 testing
+
+	integer, intent(inout) :: npass, nfail
+
+	!********
+
+	integer(kind = 4), allocatable  :: str32(:), expect(:)
+
+	character(len = :), allocatable :: str
+	!character(len = *, dimension = *) :: strs = &
+	character(len = *), parameter :: strs(*) = &
+		[ &
+			"Hello             ", &
+			"021324354657      ", &
+			"Καλλι        "     , &
+			"∮ E⋅da        "    , &
+			"გთხოვთ"            , &
+			"Привет      "        &
+		]
+
+	integer :: i
+
+	write(*,*) "testing one-way utf ..."
+
+	! Test characters from https://rosettacode.org/wiki/UTF-8_encode_and_decode#C
+	str = "AöЖ€𝄞"
+	str32 = to_utf32(str)
+	!print *, 'str32 = '
+	!print '(z0)', str32
+
+	expect = &
+		[ &
+			int(z'41'   ), &
+			int(z'F6'   ), &
+			int(z'416'  ), &
+			int(z'20AC' ), &
+			int(z'1D11E')  &
+		]
+
+	if (all(str32 == expect)) then
+		npass = npass + 1
+	else
+		nfail = nfail + 1
+	end if
+
+end subroutine test_to_utf_32
 
 !===============================================================================
 
@@ -131,9 +182,10 @@ program main
 	npass = 0
 	nfail = 0
 
-	call test_ppm_1(npass, nfail)
-	call test_ppm_2(npass, nfail)
-	call test_utf  (npass, nfail)
+	call test_ppm_1    (npass, nfail)
+	call test_ppm_2    (npass, nfail)
+	call test_utf      (npass, nfail)
+	call test_to_utf_32(npass, nfail)
 
 	! TODO:
 	! - typesetting tests after API is stable
