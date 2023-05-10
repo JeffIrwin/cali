@@ -482,7 +482,7 @@ function get_index(utf32, ttf) result(i)
 
 	integer :: seg
 
-	print '(a,z0)', 'utf32 = U+', utf32
+	!print '(a,z0)', 'utf32 = U+', utf32
 
 	! Search for the first endCode that is greater than or equal to the
 	! character code to be mapped.  Could use a binary search
@@ -514,7 +514,7 @@ function get_index(utf32, ttf) result(i)
 	end if
 
 	i = utf32 + ttf%cmap%id_delta(seg)
-	print *, 'glyph index = ', i
+	!print *, 'glyph index = ', i
 
 end function get_index
 
@@ -535,20 +535,39 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	!********
 
-	integer :: j
+	integer :: j, length, offset_next
 	integer(kind = 8) :: i, offset, pos
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
 
 	if (ttf%index2loc_fmt == 0) then
+
 		call fseek(iu, ttf%loca_offset + 2 * iglyph, SEEK_ABS)
-		offset = 2 * read_u16(iu)
+		offset      = 2 * read_u16(iu)
+		offset_next = 2 * read_u16(iu)
+
 	else
+
 		call fseek(iu, ttf%loca_offset + 4 * iglyph, SEEK_ABS)
-		offset = read_u32(iu)
+		offset      = read_u32(iu)
+		offset_next = read_u32(iu)
+
 	end if
+
+	! Compute length of glyph.  The loca table always has 1 more offset than
+	! number of glyphs so this is always valid.  Characters such as whitespace
+	! are zero-length
+	length = offset_next - offset
+	!print *, 'length = ', length
+	if (length <= 0) then
+		glyph%ncontours = 0
+		glyph%npts      = 0
+		allocate(glyph%x(ND, glyph%npts))
+		return
+	end if
+
 	offset = offset + ttf%glyf_offset
 	call fseek(iu, offset, SEEK_ABS)
-	print '(a,z0)', ' glyph offset = ', offset
+	!print '(a,z0)', ' glyph offset = ', offset
 
 	glyph%ncontours = read_i16(iu)
 	!print *, 'ncontours = ', glyph%ncontours
@@ -558,10 +577,10 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	glyph%xmax = read_fword(iu)
 	glyph%ymax = read_fword(iu)
 
-	print *, "xmin = ", glyph%xmin
-	print *, "ymin = ", glyph%ymin
-	print *, "xmax = ", glyph%xmax
-	print *, "ymax = ", glyph%ymax
+	!print *, "xmin = ", glyph%xmin
+	!print *, "ymin = ", glyph%ymin
+	!print *, "xmax = ", glyph%xmax
+	!print *, "ymax = ", glyph%ymax
 
 	if (glyph%ncontours < 0) then
 		return
@@ -651,7 +670,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	!print *, 'x, y = '
 	!print '(2i6)', glyph%x
-	print *, ''
+	!print *, ''
 
 end function read_glyph
 
@@ -729,9 +748,9 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
 		call exit(EXIT_FAILURE)
 	end if
 
-	print *, 'npts      = ', glyph%npts
-	print *, 'ncontours = ', glyph%ncontours
-	print *, 'end_pts   = ', glyph%end_pts
+	!print *, 'npts      = ', glyph%npts
+	!print *, 'ncontours = ', glyph%ncontours
+	!print *, 'end_pts   = ', glyph%end_pts
 	!print *, 'x = '
 	!print '(2i6)', glyph%x
 
@@ -1166,6 +1185,8 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
+! - get id_range_offset working with calibri.  may need to set greek text
+! - cmap format 0 looks easy.  support it for cooper black
 ! - testing
 !   * ppm round-trip done for simple rectangle images
 !   * cover multiple fonts

@@ -61,18 +61,6 @@ subroutine test_to_utf_32(npass, nfail)
 	integer(kind = 4), allocatable  :: str32(:), expect(:)
 
 	character(len = :), allocatable :: str
-	!character(len = *, dimension = *) :: strs = &
-	character(len = *), parameter :: strs(*) = &
-		[ &
-			"Hello             ", &
-			"021324354657      ", &
-			"Καλλι        "     , &
-			"∮ E⋅da        "    , &
-			"გთხოვთ"            , &
-			"Привет      "        &
-		]
-
-	integer :: i
 
 	write(*,*) "testing one-way utf ..."
 
@@ -187,6 +175,7 @@ program main
 	call test_to_utf_32(npass, nfail)
 
 	! TODO:
+	! - to_char8/32 test
 	! - typesetting tests after API is stable
 
 	write(*,*)
