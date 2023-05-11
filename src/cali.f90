@@ -388,64 +388,87 @@ function read_ttf(filename) result(ttf)
 	ttf%cmap%fmt_ = read_u16(iu)
 	write(*,*) ' cmap format = '//to_str(ttf%cmap%fmt_)
 
-	if (ttf%cmap%fmt_ /= 4) then
-		write(*,*) ERROR//'only cmap format 4 is supported'
+	select case (ttf%cmap%fmt_)
+	case (0)
+
+		ttf%cmap%length   = read_u16(iu)
+		ttf%cmap%language = read_u16(iu)
+
+		allocate( ttf%cmap%glyph_index_array(0: 255) )
+
+		do i = 0, size( ttf%cmap%glyph_index_array ) - 1
+			ttf%cmap%glyph_index_array(i) = read_u8(iu)
+		end do
+
+		!print *, 'glyph_index_array = '
+		!do i = 0, size( ttf%cmap%glyph_index_array ) - 1
+		!	print *, i, ttf%cmap%glyph_index_array(i)
+		!end do
+
+	case (4)
+
+		ttf%cmap%length   = read_u16(iu)
+		ttf%cmap%language = read_u16(iu)
+
+		ttf%cmap%nseg_x2 = read_u16(iu)
+		ttf%cmap%search_range = read_u16(iu)
+		ttf%cmap%entry_select = read_u16(iu)
+		ttf%cmap%range_shift = read_u16(iu)
+
+		allocate(ttf%cmap%end_code       ( ttf%cmap%nseg_x2 / 2 ))
+		allocate(ttf%cmap%start_code     ( ttf%cmap%nseg_x2 / 2 ))
+		allocate(ttf%cmap%id_delta       ( ttf%cmap%nseg_x2 / 2 ))
+		allocate(ttf%cmap%id_range_offset( ttf%cmap%nseg_x2 / 2 ))
+		!allocate(ttf%cmap%glyph_index_array( ??? ))
+
+		do i = 1, ttf%cmap%nseg_x2 / 2
+			ttf%cmap%end_code(i) = read_u16(iu)
+		end do
+		ttf%cmap%reserved_pad = read_u16(iu)
+		do i = 1, ttf%cmap%nseg_x2 / 2
+			ttf%cmap%start_code(i) = read_u16(iu)
+		end do
+		do i = 1, ttf%cmap%nseg_x2 / 2
+			! "NOTE: All idDelta[i] arithmetic is modulo 65536." -- apple
+			ttf%cmap%id_delta(i) = read_u16(iu)
+			if (ttf%cmap%id_delta(i) /= 0) then
+				ttf%cmap%id_delta(i) = ttf%cmap%id_delta(i) - int(z'10000')
+			end if
+		end do
+		do i = 1, ttf%cmap%nseg_x2 / 2
+			ttf%cmap%id_range_offset(i) = read_u16(iu)
+		end do
+
+		!! TODO: what is size of glyph_index_array?  Need to find a font where
+		!! id_range_offset is non-zero for testing.  I think glyph_index_array
+		!! size is number of non-zeros in id_range_offset
+		!do i = 1, ???
+		!	ttf%cmap%glyph_index_array(i) = read_u16(iu)
+		!end do
+
+		!print *, 'cmap fmt_         = ', ttf%cmap%fmt_
+		!print *, 'cmap length       = ', ttf%cmap%length
+		!print *, 'cmap language     = ', ttf%cmap%language
+		!print *, 'cmap nseg_x2      = ', ttf%cmap%nseg_x2
+		!print *, 'cmap search_range = ', ttf%cmap%search_range
+		!print *, 'cmap entry_select = ', ttf%cmap%entry_select
+		!print *, 'cmap range_shift  = ', ttf%cmap%range_shift
+		!print *, 'cmap end_code = ', ttf%cmap%end_code
+		!print *, ''
+		!print *, 'cmap reserved_pad  = ', ttf%cmap%reserved_pad
+		!print *, 'cmap start_code = ', ttf%cmap%start_code
+		!print *, ''
+		!print *, 'cmap id_delta = ', ttf%cmap%id_delta
+		!print *, ''
+		!print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
+		!print *, ''
+
+	case default
+		write(*,*) ERROR//'cmap format '//to_str(ttf%cmap%fmt_) &
+			//' is not supported'
 		call exit(-1)
-	end if
 
-	ttf%cmap%length = read_u16(iu)
-	ttf%cmap%language = read_u16(iu)
-	ttf%cmap%nseg_x2 = read_u16(iu)
-	ttf%cmap%search_range = read_u16(iu)
-	ttf%cmap%entry_select = read_u16(iu)
-	ttf%cmap%range_shift = read_u16(iu)
-
-	allocate(ttf%cmap%end_code       ( ttf%cmap%nseg_x2 / 2 ))
-	allocate(ttf%cmap%start_code     ( ttf%cmap%nseg_x2 / 2 ))
-	allocate(ttf%cmap%id_delta       ( ttf%cmap%nseg_x2 / 2 ))
-	allocate(ttf%cmap%id_range_offset( ttf%cmap%nseg_x2 / 2 ))
-	!allocate(ttf%cmap%glyph_index_array( ??? ))
-
-	do i = 1, ttf%cmap%nseg_x2 / 2
-		ttf%cmap%end_code(i) = read_u16(iu)
-	end do
-	ttf%cmap%reserved_pad = read_u16(iu)
-	do i = 1, ttf%cmap%nseg_x2 / 2
-		ttf%cmap%start_code(i) = read_u16(iu)
-	end do
-	do i = 1, ttf%cmap%nseg_x2 / 2
-		! "NOTE: All idDelta[i] arithmetic is modulo 65536." -- apple
-		ttf%cmap%id_delta(i) = read_u16(iu)
-		if (ttf%cmap%id_delta(i) /= 0) then
-			ttf%cmap%id_delta(i) = ttf%cmap%id_delta(i) - int(z'10000')
-		end if
-	end do
-	do i = 1, ttf%cmap%nseg_x2 / 2
-		ttf%cmap%id_range_offset(i) = read_u16(iu)
-	end do
-
-	!! TODO: what is size of glyph_index_array?  Need to find a font where
-	!! id_range_offset is non-zero for testing
-	!do i = 1, ???
-	!	ttf%cmap%glyph_index_array(i) = read_u16(iu)
-	!end do
-
-	!print *, 'cmap fmt_         = ', ttf%cmap%fmt_
-	!print *, 'cmap length       = ', ttf%cmap%length
-	!print *, 'cmap language     = ', ttf%cmap%language
-	!print *, 'cmap nseg_x2      = ', ttf%cmap%nseg_x2
-	!print *, 'cmap search_range = ', ttf%cmap%search_range
-	!print *, 'cmap entry_select = ', ttf%cmap%entry_select
-	!print *, 'cmap range_shift  = ', ttf%cmap%range_shift
-	!print *, 'cmap end_code = ', ttf%cmap%end_code
-	!print *, ''
-	!print *, 'cmap reserved_pad  = ', ttf%cmap%reserved_pad
-	!print *, 'cmap start_code = ', ttf%cmap%start_code
-	!print *, ''
-	!print *, 'cmap id_delta = ', ttf%cmap%id_delta
-	!print *, ''
-	!print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
-	!print *, ''
+	end select
 
 	!********
 
@@ -470,11 +493,11 @@ end function read_ttf
 
 !===============================================================================
 
-function get_index(utf32, ttf) result(i)
+function get_index(char32, ttf) result(i)
 
-	! Get the glyph index of a utf32 codepoint in the ttf struct
+	! Get the glyph index of a utf32 character codepoint in the ttf struct
 
-	integer(kind = 4) :: utf32
+	integer(kind = 4) :: char32
 	type(ttf_t), intent(in) :: ttf
 	integer(kind = 8) :: i
 
@@ -482,38 +505,48 @@ function get_index(utf32, ttf) result(i)
 
 	integer :: seg
 
-	!print '(a,z0)', 'utf32 = U+', utf32
+	!print '(a,z0)', 'char32 = U+', char32
 
-	! Search for the first endCode that is greater than or equal to the
-	! character code to be mapped.  Could use a binary search
-	seg = 1
-	do while (ttf%cmap%end_code(seg) < utf32)
-		seg = seg + 1
-		if (seg > ttf%cmap%nseg_x2 / 2) then
-			! Missing character glyph
+	select case (ttf%cmap%fmt_)
+	case (0)
+
+		i = ttf%cmap%glyph_index_array(char32)
+
+	case (4)
+
+		! Search for the first endCode that is greater than or equal to the
+		! character code to be mapped.  Could use a binary search
+		seg = 1
+		do while (ttf%cmap%end_code(seg) < char32)
+			seg = seg + 1
+			if (seg > ttf%cmap%nseg_x2 / 2) then
+				! Missing character glyph
+				i = 0
+				return
+			end if
+		end do
+		!print *, 'seg = ', seg
+
+		if (ttf%cmap%start_code(seg) > ttf%cmap%end_code(seg)) then
 			i = 0
 			return
 		end if
-	end do
-	!print *, 'seg = ', seg
 
-	if (ttf%cmap%start_code(seg) > ttf%cmap%end_code(seg)) then
-		i = 0
-		return
-	end if
+		if (ttf%cmap%start_code(seg) > char32) then
+			i = 0
+			return
+		end if
 
-	if (ttf%cmap%start_code(seg) > utf32) then
-		i = 0
-		return
-	end if
+		if (ttf%cmap%id_range_offset(seg) /= 0) then
+			! TODO
+			write(*,*) ERROR//'non-zero id_range_offset not implemented'
+			call exit(-1)
+		end if
 
-	if (ttf%cmap%id_range_offset(seg) /= 0) then
-		! TODO
-		write(*,*) ERROR//'non-zero id_range_offset not implemented'
-		call exit(-1)
-	end if
+		i = char32 + ttf%cmap%id_delta(seg)
 
-	i = utf32 + ttf%cmap%id_delta(seg)
+	end select
+
 	!print *, 'glyph index = ', i
 
 end function get_index
