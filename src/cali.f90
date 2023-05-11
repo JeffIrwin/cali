@@ -247,7 +247,7 @@ function read_ttf(filename) result(ttf)
 
 	!********
 
-	integer :: io, iu
+	integer :: io, iu, nglyph_indices
 	integer(kind = 8) :: i, head, maxp, sum_, filesize
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
@@ -419,7 +419,6 @@ function read_ttf(filename) result(ttf)
 		allocate(ttf%cmap%start_code     ( ttf%cmap%nseg_x2 / 2 ))
 		allocate(ttf%cmap%id_delta       ( ttf%cmap%nseg_x2 / 2 ))
 		allocate(ttf%cmap%id_range_offset( ttf%cmap%nseg_x2 / 2 ))
-		!allocate(ttf%cmap%glyph_index_array( ??? ))
 
 		do i = 1, ttf%cmap%nseg_x2 / 2
 			ttf%cmap%end_code(i) = read_u16(iu)
@@ -439,12 +438,26 @@ function read_ttf(filename) result(ttf)
 			ttf%cmap%id_range_offset(i) = read_u16(iu)
 		end do
 
+		nglyph_indices = 0
+		do i = 1, ttf%cmap%nseg_x2 / 2
+			if (ttf%cmap%id_range_offset(i) /= 0) then
+
+				!nglyph_indices = nglyph_indices + 1
+				nglyph_indices = nglyph_indices + &
+					ttf%cmap%end_code(i) - ttf%cmap%start_code(i) + 1
+
+			end if
+		end do
+
+		allocate(ttf%cmap%glyph_index_array( 0: nglyph_indices - 1))
+
 		!! TODO: what is size of glyph_index_array?  Need to find a font where
 		!! id_range_offset is non-zero for testing.  I think glyph_index_array
 		!! size is number of non-zeros in id_range_offset
-		!do i = 1, ???
-		!	ttf%cmap%glyph_index_array(i) = read_u16(iu)
-		!end do
+
+		do i = 0, size( ttf%cmap%glyph_index_array ) - 1
+			ttf%cmap%glyph_index_array(i) = read_u16(iu)
+		end do
 
 		!print *, 'cmap fmt_         = ', ttf%cmap%fmt_
 		!print *, 'cmap length       = ', ttf%cmap%length
@@ -460,8 +473,12 @@ function read_ttf(filename) result(ttf)
 		!print *, ''
 		!print *, 'cmap id_delta = ', ttf%cmap%id_delta
 		!print *, ''
-		!print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
-		!print *, ''
+		print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
+		print *, ''
+		print *, 'glyph_index_array = '
+		do i = 0, size( ttf%cmap%glyph_index_array ) - 1
+			print *, i, ttf%cmap%glyph_index_array(i)
+		end do
 
 	case default
 		write(*,*) ERROR//'cmap format '//to_str(ttf%cmap%fmt_) &
@@ -538,12 +555,19 @@ function get_index(char32, ttf) result(i)
 		end if
 
 		if (ttf%cmap%id_range_offset(seg) /= 0) then
-			! TODO
-			write(*,*) ERROR//'non-zero id_range_offset not implemented'
-			call exit(-1)
-		end if
+			!! TODO
+			!write(*,*) ERROR//'non-zero id_range_offset not implemented'
+			!call exit(-1)
 
-		i = char32 + ttf%cmap%id_delta(seg)
+			!glyphIndexAddress = idRangeOffset[i] + 2 * (c - startCode[i]) + (Ptr) &idRangeOffset[i]
+			!i = ttf%cmap%glyph_index_array(char32)
+
+			!i = glyph_index_array(char32 - start_code(seg))
+			i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg))
+
+		else
+			i = char32 + ttf%cmap%id_delta(seg)
+		end if
 
 	end select
 
