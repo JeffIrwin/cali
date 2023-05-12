@@ -73,7 +73,7 @@ program main
 
 	args = parse_args()
 	ttf  = read_ttf(args%ttf_file)
-	!ttfi = read_ttf('./fonts/computer-modern/cmunti.ttf')  ! italic
+	ttfi = read_ttf('./fonts/computer-modern/cmunti.ttf')  ! italic
 
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
@@ -85,7 +85,7 @@ program main
 	cv = new_canvas(800, 945, bg)
 	cv(:, 631:) = bg2
 
-	pix_per_em = 100.d0
+	pix_per_em = 80.d0
 	line_height = nint(1.2 * pix_per_em)
 	lmargin = 20
 
@@ -93,17 +93,20 @@ program main
 	!call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "Computer Modern"
-	!str = "Καλλι"
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "Aa Ee Rr"
-	!str = "Привет"
+	!str = "Καλλι"
 	!str = "Aa 🔥Ee Rr"
-	call draw_str(cv, fg , ttf , str, lmargin, 2 * line_height, pix_per_em)
+	call draw_str(cv, fg , ttfi, str, lmargin, 2 * line_height, pix_per_em)
 
-	!! Italic
-	!str = "Aa Ee Rr"
-	!call draw_str(cv, fg , ttfi, str, lmargin, 3 * line_height, pix_per_em)
+	!str = "ⴭ"  ! U+2d2d: final glyph in calibri
+	!call draw_str(cv, fg , ttf, str, lmargin, 3 * line_height, pix_per_em)
+
+	! Italic
+	str = "Aa Ee Rr"
+	!str = "Привет"
+	call draw_str(cv, fg , ttf, str, lmargin, 3 * line_height, pix_per_em)
 
 	str = "t"
 	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)

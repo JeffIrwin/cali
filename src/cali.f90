@@ -69,7 +69,10 @@ module cali_m
 			entry_select, range_shift, checksum_adj, magic_num, flags, &
 			units_per_em, xmin, ymin, xmax, ymax, mac_style, low_rec_ppem, &
 			font_dir_hint, index2loc_fmt, glyph_data_fmt, nglyphs, &
-			cmap_vers, ncmap_tables
+			cmap_vers, ncmap_tables, ascent, descent, line_gap, &
+			advance_width_max, min_lsb, min_rsb, xmax_extent, &
+			caret_slope_rise, caret_slope_run, caret_offset, metric_data_fmt, &
+			nlong_mtx
 
 		! Table offsets, cached to avoid multiple calls to get_table()
 		integer(kind = 8) :: glyf_offset, loca_offset, cmap_offset
@@ -77,8 +80,9 @@ module cali_m
 		! Dates in ttf long date time format (i64 seconds since 1904)
 		integer(kind = 8) :: created, modified
 
-		double precision :: vers, font_rev, maxp_vers
+		double precision :: vers, font_rev, maxp_vers, hhea_vers
 
+		integer(kind = 8), allocatable :: advance_widths(:)
 		type(glyph_t  ), allocatable :: glyphs(:)
 		type(ttf_table), allocatable :: tables(:)
 		type(cmap_t) :: cmap
@@ -141,6 +145,17 @@ function read_fword(unit) result(fword)
 	fword = read_i16(unit)
 
 end function read_fword
+
+!===============================================================================
+
+function read_ufword(unit) result(fword)
+
+	integer, intent(in) :: unit
+	integer(kind = 2) :: fword
+
+	fword = read_u16(unit)
+
+end function read_ufword
 
 !===============================================================================
 
@@ -248,7 +263,7 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu, nglyph_indices
-	integer(kind = 8) :: i, head, maxp, sum_, filesize
+	integer(kind = 8) :: i, head, maxp, sum_, filesize, reserved
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -428,11 +443,21 @@ function read_ttf(filename) result(ttf)
 			ttf%cmap%start_code(i) = read_u16(iu)
 		end do
 		do i = 1, ttf%cmap%nseg_x2 / 2
-			! "NOTE: All idDelta[i] arithmetic is modulo 65536." -- apple
+
 			ttf%cmap%id_delta(i) = read_u16(iu)
-			if (ttf%cmap%id_delta(i) /= 0) then
+
+			! "NOTE: All idDelta[i] arithmetic is modulo 65536." -- apple
+
+			! cormorant garamond has a mixture of small positive and negative
+			! offsets.  choose middle of u16 range for modulo cutoff
+			if (ttf%cmap%id_delta(i) > int(z'ffff',4)/2) then
 				ttf%cmap%id_delta(i) = ttf%cmap%id_delta(i) - int(z'10000')
 			end if
+
+			!if (ttf%cmap%id_delta(i) /= 0) then
+			!	ttf%cmap%id_delta(i) = ttf%cmap%id_delta(i) - int(z'10000')
+			!end if
+
 		end do
 		do i = 1, ttf%cmap%nseg_x2 / 2
 			ttf%cmap%id_range_offset(i) = read_u16(iu)
@@ -473,19 +498,54 @@ function read_ttf(filename) result(ttf)
 		!print *, ''
 		!print *, 'cmap id_delta = ', ttf%cmap%id_delta
 		!print *, ''
-		print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
-		print *, ''
-		print *, 'glyph_index_array = '
-		do i = 0, size( ttf%cmap%glyph_index_array ) - 1
-			print *, i, ttf%cmap%glyph_index_array(i)
-		end do
+		!print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
+		!print *, ''
+		!print *, 'glyph_index_array = '
+		!do i = 0, size( ttf%cmap%glyph_index_array ) - 1
+		!	print *, i, ttf%cmap%glyph_index_array(i)
+		!end do
 
 	case default
 		write(*,*) ERROR//'cmap format '//to_str(ttf%cmap%fmt_) &
 			//' is not supported'
 		call exit(-1)
 
-	end select
+	end select  ! cmap fmt_
+
+	!********
+
+	call fseek(iu, ttf%tables( ttf%get_table("hhea") )%offset, SEEK_ABS)
+
+	ttf%hhea_vers = read_fixed(iu)
+	ttf%ascent    = read_fword(iu)
+	ttf%descent   = read_fword(iu)
+	ttf%line_gap  = read_fword(iu)
+	ttf%advance_width_max = read_ufword(iu)
+	ttf%min_lsb     = read_fword(iu)
+	ttf%min_rsb     = read_fword(iu)
+	ttf%xmax_extent = read_fword(iu)
+	ttf%caret_slope_rise = read_i16(iu)
+	ttf%caret_slope_run  = read_i16(iu)
+	ttf%caret_offset = read_fword(iu)
+	reserved = read_i16(iu)
+	reserved = read_i16(iu)
+	reserved = read_i16(iu)
+	reserved = read_i16(iu)
+	ttf%metric_data_fmt = read_i16(iu)
+	ttf%nlong_mtx = read_u16(iu)
+
+	print *, 'hhea_vers       = ', ttf%hhea_vers
+	print *, 'nlong_mtx       = ', ttf%nlong_mtx
+
+	!********
+
+	call fseek(iu, ttf%tables( ttf%get_table("hmtx") )%offset, SEEK_ABS)
+	allocate(ttf%advance_widths( 0: ttf%nlong_mtx ))
+	do i = 0, ttf%nlong_mtx - 1
+		ttf%advance_widths(i) = read_u16(iu)
+		reserved = read_i16(iu)  ! could save leftSideBearing here
+	end do
+	print *, 'advance_widths = ', ttf%advance_widths(0:20)
 
 	!********
 
@@ -559,11 +619,30 @@ function get_index(char32, ttf) result(i)
 			!write(*,*) ERROR//'non-zero id_range_offset not implemented'
 			!call exit(-1)
 
-			!glyphIndexAddress = idRangeOffset[i] + 2 * (c - startCode[i]) + (Ptr) &idRangeOffset[i]
 			!i = ttf%cmap%glyph_index_array(char32)
 
-			!i = glyph_index_array(char32 - start_code(seg))
-			i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg))
+			!glyphIndexAddress = idRangeOffset[i] + 2 * (c - startCode[i]) + (Ptr) &idRangeOffset[i]
+			!glyphIndex = *( &idRangeOffset[i] + idRangeOffset[i] / 2 + (c - startCode[i]) )
+
+			!print *, 'char32          = ', char32
+			!print *, 'seg             = ', seg
+			!print *, 'id_range_offset = ', ttf%cmap%id_range_offset(seg)
+			!print *, 'start_code      = ', ttf%cmap%start_code(seg)
+
+			!i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg))
+
+			!! This seems to work for calibri: segment 3 has the first non-zero
+			!! id_range_offset and its value is 296
+			!i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg) + &
+			!	(ttf%cmap%id_range_offset(seg) - 296) / 2 + seg - 3)
+
+			! Ref:  https://stackoverflow.com/a/61804360/4347028
+			i = ttf%cmap%glyph_index_array(seg - 1 - ttf%cmap%nseg_x2/2 + &
+				ttf%cmap%id_range_offset(seg) / 2 + &
+				char32 - ttf%cmap%start_code(seg))
+
+			!i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg) + &
+			!	ttf%cmap%id_range_offset(seg))
 
 		else
 			i = char32 + ttf%cmap%id_delta(seg)
@@ -572,6 +651,7 @@ function get_index(char32, ttf) result(i)
 	end select
 
 	!print *, 'glyph index = ', i
+	!print *, ''
 
 end function get_index
 
@@ -753,7 +833,9 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 	!********
 
-	integer :: i
+	double precision :: scaling
+
+	integer :: i, x
 	integer(kind  = 4), allocatable :: utf32_str(:)
 	integer(kind = 8) :: iglyph
 
@@ -765,13 +847,24 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 	! utf32. We only need to convert 1 char at a time to draw it
 	utf32_str = to_utf32(utf8_str)
 
-	!print *, 'utf32_str = ', utf32_str
+	! Convert from font units to pixels
+	scaling = pix_per_em / ttf%units_per_em
 
+	print *, 'utf32_str = ', utf32_str
+
+	x = x0
 	do i = 1, size(utf32_str)
 		!print *, utf32_str(i)
 		iglyph = get_index(utf32_str(i), ttf)
+
+		!call draw_glyph(cv, color , ttf, ttf%glyphs(iglyph), &
+		!	x0 + int(0.7*pix_per_em*(i-1)), y0, pix_per_em)
+
 		call draw_glyph(cv, color , ttf, ttf%glyphs(iglyph), &
-			x0 + int(0.7*pix_per_em*(i-1)), y0, pix_per_em)
+			x, y0, pix_per_em)
+		x = x + nint(scaling * ttf%advance_widths( iglyph ))
+		!print *, 'advance_width = ', ttf%advance_widths( iglyph )
+
 	end do
 
 end subroutine draw_str
