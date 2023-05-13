@@ -167,7 +167,7 @@ subroutine test_cm(npass, nfail)
 
 	integer :: height, width, line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:) ! canvas
+	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
@@ -200,7 +200,7 @@ subroutine test_cm(npass, nfail)
 	str = "t"
 	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)
 
-	str = "Matrix"
+	str = "matrix"
 	call draw_str(cv, fg3, ttf, str, 450, 5 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs
@@ -214,7 +214,13 @@ subroutine test_cm(npass, nfail)
 	call draw_str(cv, fg2, ttf , str, 200, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
-	! TODO: compare to expected specimen
+
+	cv2 = read_img("./data/test-cm.ppm")
+	if (all(cv == cv2)) then
+		npass = npass + 1
+	else
+		nfail = nfail + 1
+	end if
 
 end subroutine test_cm
 
@@ -236,7 +242,7 @@ subroutine test_ubuntu(npass, nfail)
 
 	integer :: height, width, line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:) ! canvas
+	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
@@ -304,7 +310,7 @@ subroutine test_garamond(npass, nfail)
 
 	integer :: height, width, line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:) ! canvas
+	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
