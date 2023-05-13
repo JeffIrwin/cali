@@ -42,10 +42,24 @@ module cali_m
 
 	!********
 
+	type glyph_comp_t
+		! Component of a compound glyph.  TODO: remove arg1/arg2 from struct if not used
+		integer(kind = 8) :: flags, index_, arg1, arg2
+		double precision :: a, b, c, d, e, f, m, n  ! affine transformation
+	end type glyph_comp_t
+
+	!********
+
 	type glyph_t
+
+		! simple
 		integer(kind = 8) :: ncontours, xmin, ymin, xmax, ymax, ninst, npts
 		integer(kind = 8), allocatable :: x(:,:), end_pts(:)  ! TODO: use 4-bytes for x
 		integer(kind = 2), allocatable :: flags(:)
+
+		! compound
+		type(glyph_comp_t), allocatable :: comps(:)
+
 	end type glyph_t
 
 	!********
@@ -156,6 +170,17 @@ function read_ufword(unit) result(fword)
 	fword = read_u16(unit)
 
 end function read_ufword
+
+!===============================================================================
+
+function read_i8(unit) result(i8)
+
+	integer, intent(in) :: unit
+	integer(kind = 1) :: i8
+
+	read(unit) i8
+
+end function read_i8
 
 !===============================================================================
 
@@ -650,9 +675,45 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	!********
 
+	double precision :: a, b, c, d, e, f, m, n  ! affine transformation
+
+	integer, parameter :: MAX_COMP = 8
+
+!ARG_1_AND_2_ARE_WORDS	0	If set, the arguments are words;
+!ARGS_ARE_XY_VALUES	1	If set, the arguments are xy values;
+!ROUND_XY_TO_GRID	2	If set, round the xy values to grid;
+!WE_HAVE_A_SCALE	3	If set, there is a simple scale for the component.
+!(this bit is obsolete)	4	(obsolete; set to zero)
+!MORE_COMPONENTS	5	If set, at least one additional glyph follows this one.
+!WE_HAVE_AN_X_AND_Y_SCALE	6	If set the x direction will use a different scale than the y direction.
+!WE_HAVE_A_TWO_BY_TWO	7	If set there is a 2-by-2 transformation that will be used to scale the component.
+!WE_HAVE_INSTRUCTIONS	8	If set, instructions for the component character follow the last component.
+!USE_MY_METRICS	9	Use metrics from this component for the compound glyph.
+!OVERLAP_COMPOUND	10	If set, the components of this compound glyph overlap.
+
+	! TODO: can this be 2 bytes?
+	integer(kind = 4), parameter :: &
+		ARGS_ARE_WORDS = int(b'0000000000000001'), &
+		ARGS_ARE_XY    = int(b'0000000000000010'), &
+		ROUND_TO_GRID  = int(b'0000000000000100'), &
+		HAS_SCALE      = int(b'0000000000001000'), &
+		MORE_COMPS     = int(b'0000000000100000'), &
+		HAS_XY_SCALE   = int(b'0000000001000000'), &
+		HAS_2X2        = int(b'0000000010000000'), &
+		HAS_INST       = int(b'0000000100000000'), &
+		USE_MTX        = int(b'0000001000000000'), &
+		OVERLAP_COMP   = int(b'0000010000000000')
+
 	integer :: j, length, offset_next
-	integer(kind = 8) :: i, offset, pos
+	integer(kind = 8) :: i, offset, pos, arg1, arg2
+	integer(kind = 4) :: flag4
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
+
+	print *, 'glyph index = ', iglyph
+
+	!print *, 'ARGS_ARE_WORDS = ', ARGS_ARE_WORDS
+	!print *, 'ARGS_ARE_XY    = ', ARGS_ARE_XY
+	!print *, 'MORE_COMPS     = ', MORE_COMPS
 
 	if (ttf%index2loc_fmt == 0) then
 
@@ -698,13 +759,109 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!print *, "ymax = ", glyph%ymax
 
 	if (glyph%ncontours < 0) then
-		return
+		print *, 'reading compound glyph ...'
 
-		!! TODO: read compound glyph.  Maybe we could make this not a fatal
-		!! error, unless you try to *draw* a compound glyph which wasn't loaded
-		!write(*,*) ERROR// &
-		!	'compound glyphs are not supported for glyph index ', iglyph
-		!call exit(EXIT_FAILURE)
+		allocate(glyph%comps(MAX_COMP))
+
+		i = 0
+		do
+			i = i + 1
+
+!uint16	flags	Component flag
+!uint16	glyphIndex	Glyph index of component
+!int16, uint16, int8 or uint8	argument1	X-offset for component or point number; type depends on bits 0 and 1 in component fla
+!int16, uint16, int8 or uint8	argument2	Y-offset for component or point number type depends on bits 0 and 1 in component flags
+!transformation option	One of the transformation options from Table 19
+
+			! TODO: make 2 passes to count num comps and then save
+			if (i > MAX_COMP) then
+				write(*,*) ERROR//'max compound glyph components exceeded'
+				call exit(EXIT_FAILURE)
+			end if
+
+			flag4 = read_u16(iu)
+			glyph%comps(i)%flags = flag4
+
+			glyph%comps(i)%index_ = read_u16(iu)
+
+			!if (iand(flag4 , ARGS_ARE_WORDS) /= 0) then
+			!	! TODO: check bit 1 for signed/unsigned
+			!	glyph%comps(i)%arg1 = read_u16(iu)
+			!	glyph%comps(i)%arg2 = read_u16(iu)
+			!else
+			!	glyph%comps(i)%arg1 = read_u8(iu)
+			!	glyph%comps(i)%arg2 = read_u8(iu)
+			!end if
+
+			print *, 'flags = ', glyph%comps(i)%flags
+			print *, 'index = ', glyph%comps(i)%index_
+
+!if (ARG_1AND_2_ARE_WORDS && ARGS_ARE_XY_VALUES)
+!	1st short contains the value of e
+!	2nd short contains the value of f
+!else if (!ARG_1AND_2_ARE_WORDS && ARGS_ARE_XY_VALUES)
+!	1st byte contains the value of e
+!	2nd byte contains the value of f
+!else if (ARG_1AND_2_ARE_WORDS && !ARGS_ARE_XY_VALUES)
+!	1st short contains the index of matching point in compound being constructed
+!	2nd short contains index of matching point in component
+!else if (!ARG_1AND_2_ARE_WORDS && !ARGS_ARE_XY_VALUES)
+!	1st byte containing index of matching point in compound being constructed
+!	2nd byte containing index of matching point in component
+
+			if (iand(flag4, ARGS_ARE_WORDS) /= 0 .and. iand(flag4, ARGS_ARE_XY) /= 0) then
+				!1st short contains the value of e
+				!2nd short contains the value of f
+				print *, 'word'
+				arg1 = read_i16(iu)
+				arg2 = read_i16(iu)
+				print *, 'args = ', arg1, arg2
+				!e = arg1 * (2.d0 ** (-14))
+				!f = arg2 * (2.d0 ** (-14))
+				e = arg1
+				f = arg2
+			else if (iand(flag4, ARGS_ARE_WORDS) == 0 .and. iand(flag4, ARGS_ARE_XY) /= 0) then
+				!1st byte contains the value of e
+				!2nd byte contains the value of f
+				print *, 'byte'
+				arg1 = read_i8(iu)
+				arg2 = read_i8(iu)
+				print *, 'args = ', arg1, arg2
+				!e = arg1 * (2.d0 ** (-6))
+				!f = arg2 * (2.d0 ** (-6))
+				e = arg1
+				f = arg2
+			else if (iand(flag4, ARGS_ARE_WORDS) /= 0 .and. iand(flag4, ARGS_ARE_XY) == 0) then
+				!1st short contains the index of matching point in compound being constructed
+				!2nd short contains index of matching point in component
+				print *, ERROR//'anchor 1'
+				call exit(EXIT_FAILURE)
+			else if (iand(flag4, ARGS_ARE_WORDS) == 0 .and. iand(flag4, ARGS_ARE_XY) == 0) then
+				!1st byte containing index of matching point in compound being constructed
+				!2nd byte containing index of matching point in component
+				print *, ERROR//'anchor 2'
+				call exit(EXIT_FAILURE)
+			end if
+
+			print *, 'e = ', e
+			print *, 'f = ', f
+
+			! TODO: get a-d, m, n from documentation table etc.
+
+			glyph%comps(i)%a = a
+			glyph%comps(i)%b = b
+			glyph%comps(i)%c = c
+			glyph%comps(i)%d = d
+			glyph%comps(i)%e = e
+			glyph%comps(i)%f = f
+			glyph%comps(i)%m = m
+			glyph%comps(i)%n = n
+
+			if (iand(flag4, MORE_COMPS) == 0) exit
+
+		end do
+
+		return
 	end if
 
 	! Read simple glyph
