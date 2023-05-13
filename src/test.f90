@@ -200,7 +200,7 @@ subroutine test_cm(npass, nfail)
 	str = "t"
 	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)
 
-	str = "matrix"
+	str = "Matrix"
 	call draw_str(cv, fg3, ttf, str, 450, 5 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs
