@@ -215,13 +215,14 @@ subroutine test_cm(npass, nfail)
 
 	call write_img(cv, ppm_filename)
 
-	! TODO: clean up hard-coded file path
+	! TODO: clean up hard-coded file paths
 	cv2 = read_img("./data/test-"//sfx//".ppm")
 	if (all(cv == cv2)) then
 		npass = npass + 1
 	else
 		nfail = nfail + 1
 	end if
+	! TODO: log error message per-test for failures
 
 end subroutine test_cm
 
@@ -317,7 +318,7 @@ subroutine test_garamond(npass, nfail)
 
 	double precision :: pix_per_em
 
-	integer :: height, width, line_height, lmargin
+	integer :: height, width, line_height, lmargin, factor
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
@@ -334,13 +335,14 @@ subroutine test_garamond(npass, nfail)
 	bg  = new_color(int(z'e9e4d1ff',8))
 	bg2 = new_color(int(z'd7a676ff',8))
 
-	cv = new_canvas(800, 945, bg)
-	cv(:, 631:) = bg2
+	factor = 1
+	cv = new_canvas(800*factor, 945*factor, bg)
+	cv(:, 631*factor:) = bg2
 
 	! TODO: make these global parameters shared by multiple testing routines
-	pix_per_em = 75.d0
+	pix_per_em = 75.d0*factor
 	line_height = nint(1.2 * pix_per_em)
-	lmargin = 20
+	lmargin = 20*factor
 
 	str = "Garamond"
 	call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
@@ -350,21 +352,21 @@ subroutine test_garamond(npass, nfail)
 	call draw_str(cv, fg2, ttfi, str, lmargin, 3 * line_height, pix_per_em)
 
 	str = "á"
-	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)
+	call draw_str(cv, fg2, ttf, str, 600*factor, 4 * line_height, 5 * pix_per_em)
 
 	str = "TRIANON"
-	call draw_str(cv, fg3, ttf, str, 350, 5 * line_height, pix_per_em)
+	call draw_str(cv, fg3, ttf, str, 350*factor, 5 * line_height, pix_per_em)
 
-	! TODO: increase spacing for remaining strs
+	! TODO: increase spacing for remaining strs.  need extra arg for draw_str.
+	! maybe make style struct? fg, pix_per_em, and hor spacing factor
 	str = "abcdefghijklm"
 	call draw_str(cv, fg4, ttf , str, lmargin, 8 * line_height, pix_per_em)
 
 	str = "nopqrstuvwxyz"
 	call draw_str(cv, fg4, ttf , str, lmargin, 9 * line_height, pix_per_em)
 
-	! TODO ???
 	str = "0123456789"
-	call draw_str(cv, fg4, ttf , str, 200, 10 * line_height, pix_per_em)
+	call draw_str(cv, fg4, ttf , str, 200*factor, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
 
@@ -429,7 +431,7 @@ subroutine test_bodoni(npass, nfail)
 	str = "a"
 	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)
 
-	str = "HORATII"
+	str = "VIVALDI"!"HORATII"
 	call draw_str(cv, fg3, ttf, str, 350, 5 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs
@@ -474,20 +476,23 @@ program main
 	npass = 0
 	nfail = 0
 
+	! test low-level fns
 	call test_ppm_1    (npass, nfail)
 	call test_ppm_2    (npass, nfail)
 	call test_utf      (npass, nfail)
 	call test_to_utf_32(npass, nfail)
+
+	! test font specimens
 	call test_cm       (npass, nfail)
 	call test_ubuntu   (npass, nfail)
 	call test_garamond (npass, nfail)
 	call test_bodoni   (npass, nfail)
+	! TODO: test cm w/ greek/cyrillic/etc.
 
-	! TODO: add cmd arg to baseline tests
+	! TODO: add cmd arg to re-baseline tests
 
 	! TODO:
 	! - to_char8/32 test
-	! - typesetting tests after API is stable
 
 	write(*,*)
 	write(*,*) "********"

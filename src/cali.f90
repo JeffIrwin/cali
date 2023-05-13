@@ -401,7 +401,7 @@ function read_ttf(filename) result(ttf)
 	! Jump to cmap subtable offset relative to cmap_offset
 	call fseek(iu, ttf%cmap_offset + ttf%cmap%offset, SEEK_ABS)
 	ttf%cmap%fmt_ = read_u16(iu)
-	write(*,*) ' cmap format = '//to_str(ttf%cmap%fmt_)
+	write(*,*) 'cmap format = '//to_str(ttf%cmap%fmt_)
 
 	select case (ttf%cmap%fmt_)
 	case (0)
@@ -534,18 +534,20 @@ function read_ttf(filename) result(ttf)
 	ttf%metric_data_fmt = read_i16(iu)
 	ttf%nlong_mtx = read_u16(iu)
 
-	print *, 'hhea_vers       = ', ttf%hhea_vers
-	print *, 'nlong_mtx       = ', ttf%nlong_mtx
+	!print *, 'hhea_vers       = ', ttf%hhea_vers
+	!print *, 'nlong_mtx       = ', ttf%nlong_mtx
 
 	!********
 
+	! TODO: make seek table fn for this line
 	call fseek(iu, ttf%tables( ttf%get_table("hmtx") )%offset, SEEK_ABS)
+
 	allocate(ttf%advance_widths( 0: ttf%nlong_mtx ))
 	do i = 0, ttf%nlong_mtx - 1
 		ttf%advance_widths(i) = read_u16(iu)
 		reserved = read_i16(iu)  ! could save leftSideBearing here
 	end do
-	print *, 'advance_widths = ', ttf%advance_widths(0:20)
+	!print *, 'advance_widths = ', ttf%advance_widths(0:20)
 
 	!********
 
@@ -574,7 +576,7 @@ function get_index(char32, ttf) result(i)
 
 	! Get the glyph index of a utf32 character codepoint in the ttf struct
 
-	integer(kind = 4) :: char32
+	integer(kind = 4), intent(in) :: char32
 	type(ttf_t), intent(in) :: ttf
 	integer(kind = 8) :: i
 
@@ -615,34 +617,10 @@ function get_index(char32, ttf) result(i)
 		end if
 
 		if (ttf%cmap%id_range_offset(seg) /= 0) then
-			!! TODO
-			!write(*,*) ERROR//'non-zero id_range_offset not implemented'
-			!call exit(-1)
-
-			!i = ttf%cmap%glyph_index_array(char32)
-
-			!glyphIndexAddress = idRangeOffset[i] + 2 * (c - startCode[i]) + (Ptr) &idRangeOffset[i]
-			!glyphIndex = *( &idRangeOffset[i] + idRangeOffset[i] / 2 + (c - startCode[i]) )
-
-			!print *, 'char32          = ', char32
-			!print *, 'seg             = ', seg
-			!print *, 'id_range_offset = ', ttf%cmap%id_range_offset(seg)
-			!print *, 'start_code      = ', ttf%cmap%start_code(seg)
-
-			!i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg))
-
-			!! This seems to work for calibri: segment 3 has the first non-zero
-			!! id_range_offset and its value is 296
-			!i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg) + &
-			!	(ttf%cmap%id_range_offset(seg) - 296) / 2 + seg - 3)
-
 			! Ref:  https://stackoverflow.com/a/61804360/4347028
 			i = ttf%cmap%glyph_index_array(seg - 1 - ttf%cmap%nseg_x2/2 + &
 				ttf%cmap%id_range_offset(seg) / 2 + &
 				char32 - ttf%cmap%start_code(seg))
-
-			!i = ttf%cmap%glyph_index_array(char32 - ttf%cmap%start_code(seg) + &
-			!	ttf%cmap%id_range_offset(seg))
 
 		else
 			i = char32 + ttf%cmap%id_delta(seg)
@@ -690,9 +668,9 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	end if
 
-	! Compute length of glyph.  The loca table always has 1 more offset than
-	! number of glyphs so this is always valid.  Characters such as whitespace
-	! are zero-length
+	! Get length of glyph.  The loca table always has 1 more offset than number
+	! of glyphs so this is always valid.  Characters such as whitespace are
+	! zero-length
 	length = offset_next - offset
 	!print *, 'length = ', length
 	if (length <= 0) then
@@ -825,7 +803,7 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 	type(ttf_t  ), intent(in) :: ttf
 
 	! This could just be an ASCII string, since UTF8 is compatible with ASCII
-	character(len = :), allocatable :: utf8_str
+	character(len = :), allocatable, intent(in) :: utf8_str
 
 	! TODO: maybe encapsulate x0, y0, scaling as more general transform?
 	integer, intent(in) :: x0, y0 ! translation
@@ -850,7 +828,7 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 	! Convert from font units to pixels
 	scaling = pix_per_em / ttf%units_per_em
 
-	print *, 'utf32_str = ', utf32_str
+	!print *, 'utf32_str = ', utf32_str
 
 	x = x0
 	do i = 1, size(utf32_str)
@@ -862,6 +840,12 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 		call draw_glyph(cv, color , ttf, ttf%glyphs(iglyph), &
 			x, y0, pix_per_em)
+
+		! It might be better to advance x position in draw_glyph() instead of
+		! here in draw_str() :shrug:
+
+		! TODO: handle case where nlong_mtx < nglyphs?  Need to parse more data
+		! from hmtx table
 		x = x + nint(scaling * ttf%advance_widths( iglyph ))
 		!print *, 'advance_width = ', ttf%advance_widths( iglyph )
 
@@ -1335,11 +1319,6 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - get id_range_offset working with calibri.  may need to set greek text
-! - cmap format 0 looks easy.  support it for cooper black
-! - testing
-!   * ppm round-trip done for simple rectangle images
-!   * cover multiple fonts
 ! - fill-in contours instead of just outlines
 ! - other config args?  json input for app only
 !   * img size
@@ -1349,9 +1328,8 @@ end module cali_m
 !   * resolution / font size
 ! - compound glyphs
 ! - horizontal spacing
-!   * read advanceWidth from 'hmtx' table (and numOfLongHorMetrics from the
-!     'hhea' table) to get delta x for each glyph
 !   * more advanced kerning using the 'kern' table
+!   * advanceWidth from 'hmtx' table done
 ! - ligatures
 ! - anti-aliasing?  doubtful
 ! - vector output format, e.g. ps, pdf, or svg?

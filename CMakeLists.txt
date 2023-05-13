@@ -10,7 +10,7 @@ project(${PROJECT} Fortran)
 
 #=======================================================================
 
-## TODO: one of these compiler flags is breaking the unicode functionality. Figure out which one and why
+# TODO: release option
 
 add_compile_options("-Wall")
 add_compile_options("-Wextra")
