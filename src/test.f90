@@ -215,7 +215,8 @@ subroutine test_cm(npass, nfail)
 
 	call write_img(cv, ppm_filename)
 
-	cv2 = read_img("./data/test-cm.ppm")
+	! TODO: clean up hard-coded file path
+	cv2 = read_img("./data/test-"//sfx//".ppm")
 	if (all(cv == cv2)) then
 		npass = npass + 1
 	else
@@ -290,6 +291,14 @@ subroutine test_ubuntu(npass, nfail)
 
 	call write_img(cv, ppm_filename)
 
+	! TODO: clean up hard-coded file path
+	cv2 = read_img("./data/test-"//sfx//".ppm")
+	if (all(cv == cv2)) then
+		npass = npass + 1
+	else
+		nfail = nfail + 1
+	end if
+
 end subroutine test_ubuntu
 
 !===============================================================================
@@ -358,6 +367,14 @@ subroutine test_garamond(npass, nfail)
 	call draw_str(cv, fg4, ttf , str, 200, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
+
+	! TODO: clean up hard-coded file path
+	cv2 = read_img("./data/test-"//sfx//".ppm")
+	if (all(cv == cv2)) then
+		npass = npass + 1
+	else
+		nfail = nfail + 1
+	end if
 
 end subroutine test_garamond
 
