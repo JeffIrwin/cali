@@ -697,7 +697,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	integer, parameter :: MAX_COMP = 8
 
-	integer(kind = 4), parameter :: &
+	integer(kind = 2), parameter :: &
 		ARGS_ARE_WORDS = int(b'0000000000000001'), &
 		ARGS_ARE_XY    = int(b'0000000000000010'), &
 		!ROUND_TO_GRID  = int(b'0000000000000100'), &
