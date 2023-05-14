@@ -424,7 +424,8 @@ function read_ttf(filename) result(ttf)
 	ttf%ncmap_tables = read_u16(iu)
 
 	! TODO: iterate below for each ncmap_tables?  Maybe I only need the first
-	! subtable?
+	! subtable?  verdana.ttf has cmap fmt 0, but fontdrop says it has fmt 4.
+	! Try parsing its second cmap table?
 	ttf%cmap%platform_id  = read_u16(iu)
 	ttf%cmap%platform_sid = read_u16(iu)
 	ttf%cmap%offset       = read_u32(iu)
@@ -622,7 +623,8 @@ function get_index(char32, ttf) result(i)
 	case_fmt: select case (ttf%cmap%fmt_)
 	case (0)
 
-		if (char32 > ubound (ttf%cmap%glyph_index_array, 1)) then
+		if (char32 > ubound (ttf%cmap%glyph_index_array, 1) .or. &
+		    char32 < lbound (ttf%cmap%glyph_index_array, 1)) then
 			! Missing character glyph
 			i = 0
 			exit case_fmt
@@ -639,19 +641,19 @@ function get_index(char32, ttf) result(i)
 			if (seg > ttf%cmap%nseg_x2 / 2) then
 				! Missing character glyph
 				i = 0
-				return
+				exit case_fmt
 			end if
 		end do
 		!print *, 'seg = ', seg
 
 		if (ttf%cmap%start_code(seg) > ttf%cmap%end_code(seg)) then
 			i = 0
-			return
+			exit case_fmt
 		end if
 
 		if (ttf%cmap%start_code(seg) > char32) then
 			i = 0
-			return
+			exit case_fmt
 		end if
 
 		if (ttf%cmap%id_range_offset(seg) /= 0) then
@@ -659,9 +661,11 @@ function get_index(char32, ttf) result(i)
 			i = ttf%cmap%glyph_index_array(seg - 1 - ttf%cmap%nseg_x2/2 + &
 				ttf%cmap%id_range_offset(seg) / 2 + &
 				char32 - ttf%cmap%start_code(seg))
+			!print *, 'ttf%cmap%id_range_offset(seg) = ', ttf%cmap%id_range_offset(seg)
 
 		else
 			i = char32 + ttf%cmap%id_delta(seg)
+			!print *, 'ttf%cmap%id_delta(seg) = ', ttf%cmap%id_delta(seg)
 		end if
 
 	end select case_fmt
@@ -778,27 +782,11 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			glyph%comps(i)%index_ = read_u16(iu)
 
 			if (iand(flag, ARGS_ARE_WORDS) /= 0 .and. iand(flag, ARGS_ARE_XY) /= 0) then
-				!1st short contains the value of e
-				!2nd short contains the value of f
-				!print *, 'word'
-				arg1 = read_i16(iu)
-				arg2 = read_i16(iu)
-				!print *, 'args = ', arg1, arg2
-				!e = arg1 * (2.d0 ** (-14))
-				!f = arg2 * (2.d0 ** (-14))
-				e = arg1
-				f = arg2
+				e = read_i16(iu)
+				f = read_i16(iu)
 			else if (iand(flag, ARGS_ARE_WORDS) == 0 .and. iand(flag, ARGS_ARE_XY) /= 0) then
-				!1st byte contains the value of e
-				!2nd byte contains the value of f
-				!print *, 'byte'
-				arg1 = read_i8(iu)
-				arg2 = read_i8(iu)
-				!print *, 'args = ', arg1, arg2
-				!e = arg1 * (2.d0 ** (-6))
-				!f = arg2 * (2.d0 ** (-6))
-				e = arg1
-				f = arg2
+				e = read_i8(iu)
+				f = read_i8(iu)
 			else if (iand(flag, ARGS_ARE_WORDS) /= 0 .and. iand(flag, ARGS_ARE_XY) == 0) then
 				!1st short contains the index of matching point in compound being constructed
 				!2nd short contains index of matching point in component
@@ -818,16 +806,25 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				iand(flag, HAS_2X2     ) == 0) then
 				a = 1.d0
 				d = 1.d0
+
 			else if (iand(flag, HAS_SCALE)    /= 0) then
-				arg1 = read_i16(iu)
-				a = arg1 * (2.d0 ** (-14))
+				a = read_i16(iu) * (2.d0 ** (-14))
 				d = a
+
 			else if (iand(flag, HAS_XY_SCALE) /= 0) then
-				write(*,*) ERROR//'HAS_XY_SCALE'
-				call exit(EXIT_FAILURE)
+				! tested in arial.ttf: "Я" glyph has negative x scale to mirror
+				a = read_i16(iu) * (2.d0 ** (-14))
+				d = read_i16(iu) * (2.d0 ** (-14))
+
 			else if (iand(flag, HAS_2X2)      /= 0) then
-				write(*,*) ERROR//'HAS_2X2'
+				write(*,*) ERROR//'untested HAS_2X2.  remove this exit to continue'
 				call exit(EXIT_FAILURE)
+
+				a = read_i16(iu) * (2.d0 ** (-14))
+				b = read_i16(iu) * (2.d0 ** (-14))
+				c = read_i16(iu) * (2.d0 ** (-14))
+				d = read_i16(iu) * (2.d0 ** (-14))
+
 			end if
 
 			m = max(abs(a), abs(b))
@@ -1492,6 +1489,12 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
+! - version
+! - readme
+! - make a specimen() fn (and program?) that exports a specimen for a given
+!   font, maybe with some highlight words/chars as args.  unit tests could
+!   leverage this
+! - unit test diffs
 ! - fill-in contours instead of just outlines
 ! - other config args?  json input for app only
 !   * img size

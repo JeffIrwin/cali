@@ -73,7 +73,7 @@ program main
 
 	args = parse_args()
 	ttf  = read_ttf(args%ttf_file)
-	ttfi = read_ttf('./fonts/computer-modern/cmunti.ttf')  ! italic
+	!ttfi = read_ttf('./fonts/computer-modern/cmunti.ttf')  ! italic
 
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
@@ -94,11 +94,14 @@ program main
 
 	str = "The masculine urge"
 	!str = "KΚαλλι"
+	str = "Universitätsstraße"
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	str = "to typeset"
+	!str = "to typeset"
 	str = "Привет"
-	call draw_str(cv, fg2, ttf, str, 300, nint(2.5 * line_height), pix_per_em)
+	str = "Яблоко"
+	str = "Hôtel français"
+	call draw_str(cv, fg2, ttf, str, 300, 3 * line_height, pix_per_em)
 	!call draw_str(cv, fg2, ttfi, str, 300, nint(2.5 * line_height), pix_per_em)
 
 	call write_img(cv, 'test.ppm')
