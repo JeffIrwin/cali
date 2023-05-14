@@ -26,11 +26,13 @@ module cali_m
 
 	character(len = *), parameter :: &
 			FG_BOLD_BRIGHT_RED = ESC//'[91;1m', &
+			FG_BOLD_BRIGHT_MAG = ESC//'[95;1m', &
 			FG_BRIGHT_GREEN    = ESC//'[92m', &
 			COLOR_RESET        = ESC//'[0m'
 
 	character(len = *), parameter :: &
-		ERROR = FG_BOLD_BRIGHT_RED//'Error'//COLOR_RESET//': '
+		WARNING = FG_BOLD_BRIGHT_MAG//'Warning'//COLOR_RESET//': ', &
+		ERROR   = FG_BOLD_BRIGHT_RED//'Error'//COLOR_RESET//': '
 
 	!********
 
@@ -51,8 +53,8 @@ module cali_m
 	!********
 
 	type glyph_comp_t
-		! Component of a compound glyph.  TODO: remove arg1/arg2 from struct if not used
-		integer(kind = 8) :: flags, index_, arg1, arg2
+		! Component of a compound glyph
+		integer(kind = 8) :: index_
 		type(transform_t) :: t
 	end type glyph_comp_t
 
@@ -358,6 +360,7 @@ function read_ttf(filename) result(ttf)
 	! fseek() now unlike in table checksum verification
 	head = ttf%get_table("head")
 	call fseek(iu, ttf%tables(head)%offset, SEEK_ABS)
+	! call fseek_table("head")  ! TODO: implement this fn for above 2 lines
 
 	ttf%vers  = read_fixed(iu)
 	ttf%font_rev = read_fixed(iu)
@@ -510,10 +513,6 @@ function read_ttf(filename) result(ttf)
 
 		allocate(ttf%cmap%glyph_index_array( 0: nglyph_indices - 1))
 
-		!! TODO: what is size of glyph_index_array?  Need to find a font where
-		!! id_range_offset is non-zero for testing.  I think glyph_index_array
-		!! size is number of non-zeros in id_range_offset
-
 		do i = 0, size( ttf%cmap%glyph_index_array ) - 1
 			ttf%cmap%glyph_index_array(i) = read_u16(iu)
 		end do
@@ -620,9 +619,14 @@ function get_index(char32, ttf) result(i)
 
 	!print '(a,z0)', 'char32 = U+', char32
 
-	select case (ttf%cmap%fmt_)
+	case_fmt: select case (ttf%cmap%fmt_)
 	case (0)
 
+		if (char32 > ubound (ttf%cmap%glyph_index_array, 1)) then
+			! Missing character glyph
+			i = 0
+			exit case_fmt
+		end if
 		i = ttf%cmap%glyph_index_array(char32)
 
 	case (4)
@@ -660,9 +664,12 @@ function get_index(char32, ttf) result(i)
 			i = char32 + ttf%cmap%id_delta(seg)
 		end if
 
-	end select
+	end select case_fmt
 
-	! TODO: log warning for unknown glyph index 0
+	! TODO: log character and codepoint too
+	if (i == 0) then
+		write(*,*) WARNING//'unknown glyph not defined for this font'
+	end if
 
 	!print *, 'glyph index = ', i
 	!print *, ''
@@ -687,45 +694,26 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!********
 
 	double precision :: a, b, c, d, e, f, m, n  ! affine transformation
-	double precision :: m0, n0
 
 	integer, parameter :: MAX_COMP = 8
 
-!ARG_1_AND_2_ARE_WORDS	0	If set, the arguments are words;
-!ARGS_ARE_XY_VALUES	1	If set, the arguments are xy values;
-!ROUND_XY_TO_GRID	2	If set, round the xy values to grid;
-!WE_HAVE_A_SCALE	3	If set, there is a simple scale for the component.
-!(this bit is obsolete)	4	(obsolete; set to zero)
-!MORE_COMPONENTS	5	If set, at least one additional glyph follows this one.
-!WE_HAVE_AN_X_AND_Y_SCALE	6	If set the x direction will use a different scale than the y direction.
-!WE_HAVE_A_TWO_BY_TWO	7	If set there is a 2-by-2 transformation that will be used to scale the component.
-!WE_HAVE_INSTRUCTIONS	8	If set, instructions for the component character follow the last component.
-!USE_MY_METRICS	9	Use metrics from this component for the compound glyph.
-!OVERLAP_COMPOUND	10	If set, the components of this compound glyph overlap.
-
-	! TODO: can this be 2 bytes?
 	integer(kind = 4), parameter :: &
 		ARGS_ARE_WORDS = int(b'0000000000000001'), &
 		ARGS_ARE_XY    = int(b'0000000000000010'), &
-		ROUND_TO_GRID  = int(b'0000000000000100'), &
+		!ROUND_TO_GRID  = int(b'0000000000000100'), &
 		HAS_SCALE      = int(b'0000000000001000'), &
 		MORE_COMPS     = int(b'0000000000100000'), &
 		HAS_XY_SCALE   = int(b'0000000001000000'), &
-		HAS_2X2        = int(b'0000000010000000'), &
-		HAS_INST       = int(b'0000000100000000'), &
-		USE_MTX        = int(b'0000001000000000'), &
-		OVERLAP_COMP   = int(b'0000010000000000')
+		HAS_2X2        = int(b'0000000010000000')!, &
+		!HAS_INST       = int(b'0000000100000000'), &
+		!USE_MTX        = int(b'0000001000000000'), &
+		!OVERLAP_COMP   = int(b'0000010000000000')
 
 	integer :: j, length, offset_next
 	integer(kind = 8) :: i, offset, pos, arg1, arg2
-	integer(kind = 4) :: flag4
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
 
 	!print *, 'glyph index = ', iglyph
-
-	!print *, 'ARGS_ARE_WORDS = ', ARGS_ARE_WORDS
-	!print *, 'ARGS_ARE_XY    = ', ARGS_ARE_XY
-	!print *, 'MORE_COMPS     = ', MORE_COMPS
 
 	if (ttf%index2loc_fmt == 0) then
 
@@ -779,49 +767,17 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 		do
 			i = i + 1
 
-!uint16	flags	Component flag
-!uint16	glyphIndex	Glyph index of component
-!int16, uint16, int8 or uint8	argument1	X-offset for component or point number; type depends on bits 0 and 1 in component fla
-!int16, uint16, int8 or uint8	argument2	Y-offset for component or point number type depends on bits 0 and 1 in component flags
-!transformation option	One of the transformation options from Table 19
-
 			! TODO: make 2 passes to count num comps and then save
 			if (i > MAX_COMP) then
 				write(*,*) ERROR//'max compound glyph components exceeded'
 				call exit(EXIT_FAILURE)
 			end if
 
-			flag4 = read_u16(iu)
-			glyph%comps(i)%flags = flag4
+			flag = read_u16(iu)
 
 			glyph%comps(i)%index_ = read_u16(iu)
 
-			!if (iand(flag4 , ARGS_ARE_WORDS) /= 0) then
-			!	! TODO: check bit 1 for signed/unsigned
-			!	glyph%comps(i)%arg1 = read_u16(iu)
-			!	glyph%comps(i)%arg2 = read_u16(iu)
-			!else
-			!	glyph%comps(i)%arg1 = read_u8(iu)
-			!	glyph%comps(i)%arg2 = read_u8(iu)
-			!end if
-
-			!print *, 'flags = ', glyph%comps(i)%flags
-			!print *, 'index = ', glyph%comps(i)%index_
-
-!if (ARG_1AND_2_ARE_WORDS && ARGS_ARE_XY_VALUES)
-!	1st short contains the value of e
-!	2nd short contains the value of f
-!else if (!ARG_1AND_2_ARE_WORDS && ARGS_ARE_XY_VALUES)
-!	1st byte contains the value of e
-!	2nd byte contains the value of f
-!else if (ARG_1AND_2_ARE_WORDS && !ARGS_ARE_XY_VALUES)
-!	1st short contains the index of matching point in compound being constructed
-!	2nd short contains index of matching point in component
-!else if (!ARG_1AND_2_ARE_WORDS && !ARGS_ARE_XY_VALUES)
-!	1st byte containing index of matching point in compound being constructed
-!	2nd byte containing index of matching point in component
-
-			if (iand(flag4, ARGS_ARE_WORDS) /= 0 .and. iand(flag4, ARGS_ARE_XY) /= 0) then
+			if (iand(flag, ARGS_ARE_WORDS) /= 0 .and. iand(flag, ARGS_ARE_XY) /= 0) then
 				!1st short contains the value of e
 				!2nd short contains the value of f
 				!print *, 'word'
@@ -832,7 +788,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				!f = arg2 * (2.d0 ** (-14))
 				e = arg1
 				f = arg2
-			else if (iand(flag4, ARGS_ARE_WORDS) == 0 .and. iand(flag4, ARGS_ARE_XY) /= 0) then
+			else if (iand(flag, ARGS_ARE_WORDS) == 0 .and. iand(flag, ARGS_ARE_XY) /= 0) then
 				!1st byte contains the value of e
 				!2nd byte contains the value of f
 				!print *, 'byte'
@@ -843,61 +799,44 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				!f = arg2 * (2.d0 ** (-6))
 				e = arg1
 				f = arg2
-			else if (iand(flag4, ARGS_ARE_WORDS) /= 0 .and. iand(flag4, ARGS_ARE_XY) == 0) then
+			else if (iand(flag, ARGS_ARE_WORDS) /= 0 .and. iand(flag, ARGS_ARE_XY) == 0) then
 				!1st short contains the index of matching point in compound being constructed
 				!2nd short contains index of matching point in component
 				write(*,*) ERROR//'anchor 1'
 				call exit(EXIT_FAILURE)
-			else if (iand(flag4, ARGS_ARE_WORDS) == 0 .and. iand(flag4, ARGS_ARE_XY) == 0) then
+			else if (iand(flag, ARGS_ARE_WORDS) == 0 .and. iand(flag, ARGS_ARE_XY) == 0) then
 				!1st byte containing index of matching point in compound being constructed
 				!2nd byte containing index of matching point in component
 				write(*,*) ERROR//'anchor 2'
 				call exit(EXIT_FAILURE)
 			end if
 
-			!WE_HAVE_A_SCALE
-			!WE_HAVE_AN_X_AND_Y_SCALE
-			!WE_HAVE_A_TWO_BY_TWO
-
 			b = 0.d0
 			c = 0.d0
-			if (iand(flag4, HAS_SCALE   ) == 0 .and. &
-				iand(flag4, HAS_XY_SCALE) == 0 .and. &
-				iand(flag4, HAS_2X2     ) == 0) then
+			if (iand(flag, HAS_SCALE   ) == 0 .and. &
+				iand(flag, HAS_XY_SCALE) == 0 .and. &
+				iand(flag, HAS_2X2     ) == 0) then
 				a = 1.d0
 				d = 1.d0
-			else if (iand(flag4, HAS_SCALE)    /= 0) then
-				!print *, ERROR//'HAS_SCALE'
-				!call exit(EXIT_FAILURE)
+			else if (iand(flag, HAS_SCALE)    /= 0) then
 				arg1 = read_i16(iu)
-				!print *, 'args = ', arg1, arg2
 				a = arg1 * (2.d0 ** (-14))
 				d = a
-			else if (iand(flag4, HAS_XY_SCALE) /= 0) then
+			else if (iand(flag, HAS_XY_SCALE) /= 0) then
 				write(*,*) ERROR//'HAS_XY_SCALE'
 				call exit(EXIT_FAILURE)
-			else if (iand(flag4, HAS_2X2)      /= 0) then
+			else if (iand(flag, HAS_2X2)      /= 0) then
 				write(*,*) ERROR//'HAS_2X2'
 				call exit(EXIT_FAILURE)
 			end if
 
-			!First, let m₀ = max(|a|, |b|) and n₀ = max(|c|, |d|).
-			!
-			!If |(|a|-|c|)| ≤ 33/65536, then m = 2m₀; otherwise, m = m₀.
-			!
-			!Similarly, if |(|b|-|d|)| ≤ 33/65536, then n = 2n₀; otherwise, n = n₀
-
-			m0 = max(abs(a), abs(b))
-			n0 = max(abs(c), abs(d))
+			m = max(abs(a), abs(b))
+			n = max(abs(c), abs(d))
 			if (abs(abs(a) - abs(c)) <= 33.d0 / 65536.d0) then
-				m = 2 * m0
-			else
-				m = m0
+				m = 2 * 0
 			end if
 			if (abs(abs(b) - abs(d)) <= 33.d0 / 65536.d0) then
-				n = 2 * n0
-			else
-				n = n0
+				n = 2 * n
 			end if
 
 			!print *, 'a = ', a
@@ -918,7 +857,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			glyph%comps(i)%t%m = m
 			glyph%comps(i)%t%n = n
 
-			if (iand(flag4, MORE_COMPS) == 0) exit
+			if (iand(flag, MORE_COMPS) == 0) exit
 
 		end do
 		glyph%ncomps = i
@@ -1024,7 +963,6 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 	! This could just be an ASCII string, since UTF8 is compatible with ASCII
 	character(len = :), allocatable, intent(in) :: utf8_str
 
-	! TODO: maybe encapsulate x0, y0, scaling as more general transform?
 	integer, intent(in) :: x0, y0 ! translation
 	double precision, intent(in) :: pix_per_em
 
@@ -1081,15 +1019,14 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	type(ttf_t  ), intent(in) :: ttf
 	type(glyph_t), intent(in) :: glyph
 
-	! TODO: units.  Maybe encapsulate x0, y0, scaling as more general transform?
 	integer, intent(in) :: x0, y0 ! translation
 	double precision, intent(in) :: pix_per_em
 
-	type(transform_t), intent(in) :: t
+	type(transform_t), intent(in) :: t  ! general affine transform for compound glyphs
 
 	!********
 
-	double precision :: scaling, xp, yp, ta, tb, tc, td, te, tf, tm, tn
+	double precision :: scaling
 
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
@@ -1123,26 +1060,16 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	! issues at high x0.  Or just shift args for draw_line/draw_bezier2 calls
 	x = glyph%x
 
-	! Apply t transform first
-
 	do i = 1, glyph%npts
 
-		! TODO: don't unpack
-		ta = t%a
-		tb = t%b
-		tc = t%c
-		td = t%d
-		te = t%e
-		tf = t%f
-		tm = t%m
-		tn = t%n
+		! Apply t transform first
+		x(:,i) = & ! TODO: nint and update tests? or make x double
+			[    &
+				t%m * (t%a * x(1,i) / t%m + t%c * x(2,i) / t%m + t%e), &
+				t%n * (t%b * x(1,i) / t%n + t%d * x(2,i) / t%n + t%f)  &
+			]
 
-		! TODO: vectorize
-		xp = tm * (ta * x(1,i) / tm + tc * x(2,i) / tm + te)
-		yp = tn * (tb * x(1,i) / tn + td * x(2,i) / tn + tf)
-		x(:,i) = [xp, yp] ! TODO: nint
-
-		! Apply global transform (resolution, translation).  TODO: nint()
+		! Apply global transform (resolution, translation).  TODO: nint() ibid
 		x(1,i) = int( scaling * x(1,i) + x0)
 		x(2,i) = int(-scaling * x(2,i) + y0)  ! invert y for y-down img coords
 
@@ -1165,8 +1092,6 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 			flag  = glyph%flags(j )
 			flagn = glyph%flags(jn)
 
-			! TODO: make is_on_curve(flag) fn.  This is not readable and meaning
-			! of == 0 or /= 0 is not clear
 			if (iand(flag , ON_CURVE) /= 0 .and. &
 			    iand(flagn, ON_CURVE) /= 0) then
 
@@ -1574,7 +1499,6 @@ end module cali_m
 !   * font filename
 !   * text filename (or directly as a string)
 !   * resolution / font size
-! - compound glyphs
 ! - horizontal spacing
 !   * more advanced kerning using the 'kern' table
 !   * advanceWidth from 'hmtx' table done

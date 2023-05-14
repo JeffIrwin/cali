@@ -165,7 +165,7 @@ subroutine test_cm(npass, nfail)
 
 	double precision :: pix_per_em
 
-	integer :: height, width, line_height, lmargin
+	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
@@ -242,7 +242,7 @@ subroutine test_ubuntu(npass, nfail)
 
 	double precision :: pix_per_em
 
-	integer :: height, width, line_height, lmargin
+	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
@@ -318,7 +318,7 @@ subroutine test_garamond(npass, nfail)
 
 	double precision :: pix_per_em
 
-	integer :: height, width, line_height, lmargin, factor
+	integer :: line_height, lmargin, factor
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
@@ -396,7 +396,7 @@ subroutine test_bodoni(npass, nfail)
 
 	double precision :: pix_per_em
 
-	integer :: height, width, line_height, lmargin
+	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
 
@@ -431,7 +431,7 @@ subroutine test_bodoni(npass, nfail)
 	str = "a"
 	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)
 
-	str = "VIVALDI"!"HORATII"
+	str = "VIVALDI"
 	call draw_str(cv, fg3, ttf, str, 350, 5 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs

@@ -61,7 +61,7 @@ program main
 
 	double precision :: pix_per_em
 
-	integer :: height, width, line_height, lmargin
+	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:) ! canvas
 
@@ -92,8 +92,8 @@ program main
 	!str = "a b!"
 	!call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	str = "ijij"
-	str = "KΚαλλι"
+	str = "The masculine urge"
+	!str = "KΚαλλι"
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "to typeset"
