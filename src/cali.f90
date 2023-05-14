@@ -662,6 +662,8 @@ function get_index(char32, ttf) result(i)
 
 	end select
 
+	! TODO: log warning for unknown glyph index 0
+
 	!print *, 'glyph index = ', i
 	!print *, ''
 
@@ -769,7 +771,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!print *, "ymax = ", glyph%ymax
 
 	if (glyph%ncontours < 0) then
-		print *, 'reading compound glyph ...'
+		!print *, 'reading compound glyph ...'
 
 		allocate(glyph%comps(MAX_COMP))
 
@@ -803,8 +805,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			!	glyph%comps(i)%arg2 = read_u8(iu)
 			!end if
 
-			print *, 'flags = ', glyph%comps(i)%flags
-			print *, 'index = ', glyph%comps(i)%index_
+			!print *, 'flags = ', glyph%comps(i)%flags
+			!print *, 'index = ', glyph%comps(i)%index_
 
 !if (ARG_1AND_2_ARE_WORDS && ARGS_ARE_XY_VALUES)
 !	1st short contains the value of e
@@ -822,10 +824,10 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			if (iand(flag4, ARGS_ARE_WORDS) /= 0 .and. iand(flag4, ARGS_ARE_XY) /= 0) then
 				!1st short contains the value of e
 				!2nd short contains the value of f
-				print *, 'word'
+				!print *, 'word'
 				arg1 = read_i16(iu)
 				arg2 = read_i16(iu)
-				print *, 'args = ', arg1, arg2
+				!print *, 'args = ', arg1, arg2
 				!e = arg1 * (2.d0 ** (-14))
 				!f = arg2 * (2.d0 ** (-14))
 				e = arg1
@@ -833,10 +835,10 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			else if (iand(flag4, ARGS_ARE_WORDS) == 0 .and. iand(flag4, ARGS_ARE_XY) /= 0) then
 				!1st byte contains the value of e
 				!2nd byte contains the value of f
-				print *, 'byte'
+				!print *, 'byte'
 				arg1 = read_i8(iu)
 				arg2 = read_i8(iu)
-				print *, 'args = ', arg1, arg2
+				!print *, 'args = ', arg1, arg2
 				!e = arg1 * (2.d0 ** (-6))
 				!f = arg2 * (2.d0 ** (-6))
 				e = arg1
@@ -844,12 +846,12 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 			else if (iand(flag4, ARGS_ARE_WORDS) /= 0 .and. iand(flag4, ARGS_ARE_XY) == 0) then
 				!1st short contains the index of matching point in compound being constructed
 				!2nd short contains index of matching point in component
-				print *, ERROR//'anchor 1'
+				write(*,*) ERROR//'anchor 1'
 				call exit(EXIT_FAILURE)
 			else if (iand(flag4, ARGS_ARE_WORDS) == 0 .and. iand(flag4, ARGS_ARE_XY) == 0) then
 				!1st byte containing index of matching point in compound being constructed
 				!2nd byte containing index of matching point in component
-				print *, ERROR//'anchor 2'
+				write(*,*) ERROR//'anchor 2'
 				call exit(EXIT_FAILURE)
 			end if
 
@@ -865,13 +867,17 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				a = 1.d0
 				d = 1.d0
 			else if (iand(flag4, HAS_SCALE)    /= 0) then
-				print *, ERROR//'HAS_SCALE'
-				call exit(EXIT_FAILURE)
+				!print *, ERROR//'HAS_SCALE'
+				!call exit(EXIT_FAILURE)
+				arg1 = read_i16(iu)
+				!print *, 'args = ', arg1, arg2
+				a = arg1 * (2.d0 ** (-14))
+				d = a
 			else if (iand(flag4, HAS_XY_SCALE) /= 0) then
-				print *, ERROR//'HAS_XY_SCALE'
+				write(*,*) ERROR//'HAS_XY_SCALE'
 				call exit(EXIT_FAILURE)
 			else if (iand(flag4, HAS_2X2)      /= 0) then
-				print *, ERROR//'HAS_2X2'
+				write(*,*) ERROR//'HAS_2X2'
 				call exit(EXIT_FAILURE)
 			end if
 
@@ -894,14 +900,14 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				n = n0
 			end if
 
-			print *, 'a = ', a
-			print *, 'b = ', b
-			print *, 'c = ', c
-			print *, 'd = ', d
-			print *, 'e = ', e
-			print *, 'f = ', f
-			print *, 'm = ', m
-			print *, 'n = ', n
+			!print *, 'a = ', a
+			!print *, 'b = ', b
+			!print *, 'c = ', c
+			!print *, 'd = ', d
+			!print *, 'e = ', e
+			!print *, 'f = ', f
+			!print *, 'm = ', m
+			!print *, 'n = ', n
 
 			glyph%comps(i)%t%a = a
 			glyph%comps(i)%t%b = b
@@ -1093,6 +1099,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 		!write(*,*) ERROR//'compound glyphs are not supported'
 		!call exit(EXIT_FAILURE)
 
+		print *, 'drawing '//to_str(glyph%ncomps)//' components ...'
 		do i = 1, glyph%ncomps
 			call draw_glyph(cv, color, ttf, &
 				ttf%glyphs( glyph%comps(i)%index_ ), x0, y0, pix_per_em, &

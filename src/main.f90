@@ -93,11 +93,13 @@ program main
 	!call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "ijij"
-	!str = "Καλλι"
+	str = "KΚαλλι"
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "to typeset"
-	call draw_str(cv, fg2, ttfi, str, 300, nint(2.5 * line_height), pix_per_em)
+	str = "Привет"
+	call draw_str(cv, fg2, ttf, str, 300, nint(2.5 * line_height), pix_per_em)
+	!call draw_str(cv, fg2, ttfi, str, 300, nint(2.5 * line_height), pix_per_em)
 
 	call write_img(cv, 'test.ppm')
 
