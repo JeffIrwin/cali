@@ -8,7 +8,7 @@ A calligraphic library for fonts
 # Library usage
 
 Load a font from a ttf file:
-```fortran
+```f90
 	use cali_m
 	type(ttf_t)  :: ttf, ttfi
 	ttf  = read_ttf('./fonts/computer-modern/cmunrm.ttf')  ! roman
