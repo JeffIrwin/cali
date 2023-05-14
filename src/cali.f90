@@ -958,7 +958,7 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 	type(ttf_t  ), intent(in) :: ttf
 
 	! This could just be an ASCII string, since UTF8 is compatible with ASCII
-	character(len = :), allocatable, intent(in) :: utf8_str
+	character(len = *), intent(in) :: utf8_str
 
 	integer, intent(in) :: x0, y0 ! translation
 	double precision, intent(in) :: pix_per_em

@@ -53,17 +53,16 @@ program main
 
 	use app_m
 	use cali_m
-	!use utf8_m
 
 	implicit none
 
 	character(len = :), allocatable :: str
 
-	double precision :: pix_per_em
+	double precision :: pixels_per_em
 
-	integer :: line_height, lmargin
+	integer :: line_height, left_margin
 	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:) ! canvas
+	integer(kind = 4), allocatable :: canvas(:,:)
 
 	type(args_t) :: args
 	type(ttf_t)  :: ttf, ttfi
@@ -82,29 +81,28 @@ program main
 	bg  = new_color(int(z'e8e6cbff',8))
 	bg2 = fg3
 
-	cv = new_canvas(1500, 600, bg)
-	cv(:, 300:) = bg2
+	canvas = new_canvas(1500, 600, bg)
+	canvas(:, 300:) = bg2
 
-	pix_per_em = 140.d0
-	line_height = nint(1.2 * pix_per_em)
-	lmargin = 100
+	pixels_per_em = 140.d0
+	line_height = nint(1.2 * pixels_per_em)
+	left_margin = 100
 
-	!str = "a b!"
-	!call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
+	call draw_str(canvas, fg, ttf, "Hello, world!", &
+		left_margin, 1 * line_height, pixels_per_em)
 
-	str = "The masculine urge"
-	!str = "KΚαλλι"
-	str = "Universitätsstraße"
-	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
+	call draw_str(canvas, fg, ttf, "foo, bar, baz", &
+		left_margin, 2 * line_height, pixels_per_em)
 
+	str = "Καλλι"
+	!str = "Universitätsstraße"
 	!str = "to typeset"
-	str = "Привет"
-	str = "Яблоко"
-	str = "Hôtel français"
-	call draw_str(cv, fg2, ttf, str, 300, 3 * line_height, pix_per_em)
-	!call draw_str(cv, fg2, ttfi, str, 300, nint(2.5 * line_height), pix_per_em)
+	!str = "Привет"
+	!str = "Яблоко"
+	!str = "Hôtel français"
+	call draw_str(canvas, fg2, ttf, str, left_margin, 3 * line_height, pixels_per_em)
 
-	call write_img(cv, 'test.ppm')
+	call write_img(canvas, 'test.ppm')
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)
