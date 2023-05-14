@@ -40,7 +40,6 @@ program main
 	integer(kind = 4) :: fg, fg2, bg
 	integer(kind = 4), allocatable :: canvas(:,:)
 
-	type(args_t) :: args
 	type(ttf_t)  :: ttf, ttfi
 
 	ttf  = read_ttf('./fonts/computer-modern/cmunrm.ttf')  ! roman
@@ -51,11 +50,11 @@ program main
 	fg2 = new_color(int(z'2a7fffff',8))
 	bg  = new_color(int(z'e8e6cbff',8))
 
-	canvas = new_canvas(800, 600, bg)
+	canvas = new_canvas(700, 400, bg)
 
-	pixels_per_em = 140.d0
+	pixels_per_em = 100.d0
 	line_height   = nint(1.2 * pixels_per_em)
-	left_margin   = 100
+	left_margin   = 20
 
 	call draw_str(canvas, fg , ttf , "Hello, world!", &
 		left_margin, 1 * line_height, pixels_per_em)
