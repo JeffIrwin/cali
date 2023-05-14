@@ -82,37 +82,22 @@ program main
 	bg  = new_color(int(z'e8e6cbff',8))
 	bg2 = fg3
 
-	cv = new_canvas(800, 945, bg)
-	cv(:, 631:) = bg2
+	cv = new_canvas(1500, 600, bg)
+	cv(:, 300:) = bg2
 
-	pix_per_em = 80.d0
+	pix_per_em = 140.d0
 	line_height = nint(1.2 * pix_per_em)
-	lmargin = 20
+	lmargin = 100
 
 	!str = "a b!"
 	!call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	str = "Computer Modern"
+	str = "ijij"
+	!str = "Καλλι"
 	call draw_str(cv, fg , ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	str = "Aa Ee Rr"
-	!str = "Καλλι"
-	!str = "Aa 🔥Ee Rr"
-	call draw_str(cv, fg , ttfi, str, lmargin, 2 * line_height, pix_per_em)
-
-	!str = "ⴭ"  ! U+2d2d: final glyph in calibri
-	!call draw_str(cv, fg , ttf, str, lmargin, 3 * line_height, pix_per_em)
-
-	! Italic
-	str = "Aa Ee Rr"
-	!str = "Привет"
-	call draw_str(cv, fg , ttf, str, lmargin, 3 * line_height, pix_per_em)
-
-	str = "t"
-	call draw_str(cv, fg2, ttf, str, 600, 4 * line_height, 5 * pix_per_em)
-
-	str = "Matrix"
-	call draw_str(cv, fg3, ttf, str, 450, 5 * line_height, pix_per_em)
+	str = "to typeset"
+	call draw_str(cv, fg2, ttfi, str, 300, nint(2.5 * line_height), pix_per_em)
 
 	call write_img(cv, 'test.ppm')
 

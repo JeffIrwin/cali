@@ -42,10 +42,18 @@ module cali_m
 
 	!********
 
+	type transform_t
+		! affine transformation
+		double precision :: a = 1.d0, b = 0.d0, c = 0.d0, d = 1.d0, &
+			e = 0.d0, f = 0.d0, m = 1.d0, n = 1.d0
+	end type transform_t
+
+	!********
+
 	type glyph_comp_t
 		! Component of a compound glyph.  TODO: remove arg1/arg2 from struct if not used
 		integer(kind = 8) :: flags, index_, arg1, arg2
-		double precision :: a, b, c, d, e, f, m, n  ! affine transformation
+		type(transform_t) :: t
 	end type glyph_comp_t
 
 	!********
@@ -58,6 +66,7 @@ module cali_m
 		integer(kind = 2), allocatable :: flags(:)
 
 		! compound
+		integer :: ncomps
 		type(glyph_comp_t), allocatable :: comps(:)
 
 	end type glyph_t
@@ -676,6 +685,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	!********
 
 	double precision :: a, b, c, d, e, f, m, n  ! affine transformation
+	double precision :: m0, n0
 
 	integer, parameter :: MAX_COMP = 8
 
@@ -709,7 +719,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 	integer(kind = 4) :: flag4
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
 
-	print *, 'glyph index = ', iglyph
+	!print *, 'glyph index = ', iglyph
 
 	!print *, 'ARGS_ARE_WORDS = ', ARGS_ARE_WORDS
 	!print *, 'ARGS_ARE_XY    = ', ARGS_ARE_XY
@@ -843,23 +853,69 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				call exit(EXIT_FAILURE)
 			end if
 
+			!WE_HAVE_A_SCALE
+			!WE_HAVE_AN_X_AND_Y_SCALE
+			!WE_HAVE_A_TWO_BY_TWO
+
+			b = 0.d0
+			c = 0.d0
+			if (iand(flag4, HAS_SCALE   ) == 0 .and. &
+				iand(flag4, HAS_XY_SCALE) == 0 .and. &
+				iand(flag4, HAS_2X2     ) == 0) then
+				a = 1.d0
+				d = 1.d0
+			else if (iand(flag4, HAS_SCALE)    /= 0) then
+				print *, ERROR//'HAS_SCALE'
+				call exit(EXIT_FAILURE)
+			else if (iand(flag4, HAS_XY_SCALE) /= 0) then
+				print *, ERROR//'HAS_XY_SCALE'
+				call exit(EXIT_FAILURE)
+			else if (iand(flag4, HAS_2X2)      /= 0) then
+				print *, ERROR//'HAS_2X2'
+				call exit(EXIT_FAILURE)
+			end if
+
+			!First, let m₀ = max(|a|, |b|) and n₀ = max(|c|, |d|).
+			!
+			!If |(|a|-|c|)| ≤ 33/65536, then m = 2m₀; otherwise, m = m₀.
+			!
+			!Similarly, if |(|b|-|d|)| ≤ 33/65536, then n = 2n₀; otherwise, n = n₀
+
+			m0 = max(abs(a), abs(b))
+			n0 = max(abs(c), abs(d))
+			if (abs(abs(a) - abs(c)) <= 33.d0 / 65536.d0) then
+				m = 2 * m0
+			else
+				m = m0
+			end if
+			if (abs(abs(b) - abs(d)) <= 33.d0 / 65536.d0) then
+				n = 2 * n0
+			else
+				n = n0
+			end if
+
+			print *, 'a = ', a
+			print *, 'b = ', b
+			print *, 'c = ', c
+			print *, 'd = ', d
 			print *, 'e = ', e
 			print *, 'f = ', f
+			print *, 'm = ', m
+			print *, 'n = ', n
 
-			! TODO: get a-d, m, n from documentation table etc.
-
-			glyph%comps(i)%a = a
-			glyph%comps(i)%b = b
-			glyph%comps(i)%c = c
-			glyph%comps(i)%d = d
-			glyph%comps(i)%e = e
-			glyph%comps(i)%f = f
-			glyph%comps(i)%m = m
-			glyph%comps(i)%n = n
+			glyph%comps(i)%t%a = a
+			glyph%comps(i)%t%b = b
+			glyph%comps(i)%t%c = c
+			glyph%comps(i)%t%d = d
+			glyph%comps(i)%t%e = e
+			glyph%comps(i)%t%f = f
+			glyph%comps(i)%t%m = m
+			glyph%comps(i)%t%n = n
 
 			if (iand(flag4, MORE_COMPS) == 0) exit
 
 		end do
+		glyph%ncomps = i
 
 		return
 	end if
@@ -974,6 +1030,8 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 	integer(kind  = 4), allocatable :: utf32_str(:)
 	integer(kind = 8) :: iglyph
 
+	type(transform_t) :: t
+
 	write(*,*) 'Drawing string "'//utf8_str//'" ...'
 
 	!print *, 'len = ', len(utf8_str)
@@ -987,19 +1045,14 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 	!print *, 'utf32_str = ', utf32_str
 
+	! t is initialized to identity in type declaration
+
 	x = x0
 	do i = 1, size(utf32_str)
 		!print *, utf32_str(i)
 		iglyph = get_index(utf32_str(i), ttf)
-
-		!call draw_glyph(cv, color , ttf, ttf%glyphs(iglyph), &
-		!	x0 + int(0.7*pix_per_em*(i-1)), y0, pix_per_em)
-
 		call draw_glyph(cv, color , ttf, ttf%glyphs(iglyph), &
-			x, y0, pix_per_em)
-
-		! It might be better to advance x position in draw_glyph() instead of
-		! here in draw_str() :shrug:
+			x, y0, pix_per_em, t)
 
 		! TODO: handle case where nlong_mtx < nglyphs?  Need to parse more data
 		! from hmtx table
@@ -1012,7 +1065,7 @@ end subroutine draw_str
 
 !===============================================================================
 
-subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
+subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
 	! Draw a glyph translated horizontally by x0
 
@@ -1026,17 +1079,27 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
 	integer, intent(in) :: x0, y0 ! translation
 	double precision, intent(in) :: pix_per_em
 
+	type(transform_t), intent(in) :: t
+
 	!********
 
-	double precision :: scaling
+	double precision :: scaling, xp, yp, ta, tb, tc, td, te, tf, tm, tn
 
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
 	integer(kind = 8), allocatable :: x(:,:)  ! TODO: double?  it's scaled
 
 	if (glyph%ncontours < 0) then
-		write(*,*) ERROR//'compound glyphs are not supported'
-		call exit(EXIT_FAILURE)
+		!write(*,*) ERROR//'compound glyphs are not supported'
+		!call exit(EXIT_FAILURE)
+
+		do i = 1, glyph%ncomps
+			call draw_glyph(cv, color, ttf, &
+				ttf%glyphs( glyph%comps(i)%index_ ), x0, y0, pix_per_em, &
+				            glyph%comps(i)%t       )
+		end do
+
+		return
 	end if
 
 	!print *, 'npts      = ', glyph%npts
@@ -1052,9 +1115,30 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em)
 	! translate and blend that into the global canvas to avoid resolution
 	! issues at high x0.  Or just shift args for draw_line/draw_bezier2 calls
 	x = glyph%x
+
+	! Apply t transform first
+
 	do i = 1, glyph%npts
+
+		! TODO: don't unpack
+		ta = t%a
+		tb = t%b
+		tc = t%c
+		td = t%d
+		te = t%e
+		tf = t%f
+		tm = t%m
+		tn = t%n
+
+		! TODO: vectorize
+		xp = tm * (ta * x(1,i) / tm + tc * x(2,i) / tm + te)
+		yp = tn * (tb * x(1,i) / tn + td * x(2,i) / tn + tf)
+		x(:,i) = [xp, yp] ! TODO: nint
+
+		! Apply global transform (resolution, translation).  TODO: nint()
 		x(1,i) = int( scaling * x(1,i) + x0)
 		x(2,i) = int(-scaling * x(2,i) + y0)  ! invert y for y-down img coords
+
 	end do
 
 	start_pt = 1
