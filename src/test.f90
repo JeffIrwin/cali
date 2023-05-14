@@ -421,7 +421,7 @@ subroutine test_bodoni(npass, nfail)
 	line_height = nint(1.2 * pix_per_em)
 	lmargin = 20
 
-	str = "Bodon"!i" ! TODO: i is a compound glyph
+	str = "Bodoni"
 	call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "Aa Qq Rr"
@@ -435,7 +435,7 @@ subroutine test_bodoni(npass, nfail)
 	call draw_str(cv, fg3, ttf, str, 350, 5 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs
-	str = "abcdefghklm" ! TODO: ij
+	str = "abcdefghijklm"
 	call draw_str(cv, fg4, ttf , str, lmargin, 8 * line_height, pix_per_em)
 
 	str = "nopqrstuvwxyz"
