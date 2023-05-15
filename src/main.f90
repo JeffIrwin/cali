@@ -51,8 +51,6 @@ end module app_m
 
 !program main
 !
-!! Program from readme
-!
 !	use cali_m
 !
 !	implicit none
@@ -82,10 +80,10 @@ end module app_m
 !	call draw_str(canvas, fg , ttf , "Hello, world!", &
 !		left_margin, 1 * line_height, pixels_per_em)
 !
-!	call draw_str(canvas, fg2, ttfi, "foo, bar, baz", &
+!	call draw_str(canvas, fg2, ttfi, "föø, бар, βαζ", &
 !		left_margin, 2 * line_height, pixels_per_em)
 !
-!	call write_img(canvas, 'test.ppm')
+!	call write_img(canvas, 'my-file.ppm')
 !
 !end program main
 

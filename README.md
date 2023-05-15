@@ -18,8 +18,8 @@ Set the foreground and background colors, e.g. using `z'RRGGBBAA'` format:
 ```f90
 integer(kind = 4) :: fg, bg
 ! [... other declarations and code omitted]
-fg  = new_color(int(z'000000ff',8))
-bg  = new_color(int(z'e8e6cbff',8))
+fg = new_color(int(z'000000ff',8))
+bg = new_color(int(z'e8e6cbff',8))
 ```
 
 Set the [resolution](https://en.wikipedia.org/wiki/Em_(typography)), line spacing, and margin:
@@ -44,7 +44,7 @@ Draw some strings of text on the canvas:
 call draw_str(canvas, fg, ttf, "Hello, world!", &
 	left_margin, 1 * line_height, pixels_per_em)
 
-call draw_str(canvas, fg, ttf, "foo, bar, baz", &
+call draw_str(canvas, fg, ttf, "föø, бар, βαζ", &
 	left_margin, 2 * line_height, pixels_per_em)
 ```
 
@@ -93,13 +93,16 @@ program main
 	call draw_str(canvas, fg , ttf , "Hello, world!", &
 		left_margin, 1 * line_height, pixels_per_em)
 
-	call draw_str(canvas, fg2, ttfi, "foo, bar, baz", &
+	call draw_str(canvas, fg2, ttfi, "föø, бар, βαζ", &
 		left_margin, 2 * line_height, pixels_per_em)
 
 	call write_img(canvas, 'my-file.ppm')
 
 end program main
 ```
+
+The typeset image looks like this:
+![](./doc/demo-program.png)
 
 # Linking
 
