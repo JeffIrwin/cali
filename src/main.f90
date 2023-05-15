@@ -107,7 +107,7 @@ program main
 	type(args_t) :: args
 	type(ttf_t)  :: ttf, ttfi
 
-	write(*,*) 'cali 0.0.1'
+	write(*,*) 'cali 0.0.2'  ! TODO: parameterize and move to lib
 	write(*,*)
 
 	args = parse_args()
