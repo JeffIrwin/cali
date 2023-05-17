@@ -387,7 +387,7 @@ function read_ttf(filename) result(ttf)
 	ttf%flags        = read_u16(iu)
 	ttf%units_per_em = read_u16(iu)
 
-	write(*, '(a,i0)') ' Units per em = ', ttf%units_per_em
+	write(*,*) 'Units per em = '//to_str(ttf%units_per_em)
 
 	ttf%created  = read_i64(iu)
 	ttf%modified = read_i64(iu)
@@ -975,7 +975,7 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 	!********
 
-	double precision :: scaling
+	double precision :: pix_per_unit
 
 	integer :: i, x
 	integer(kind  = 4), allocatable :: utf32_str(:)
@@ -994,7 +994,7 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 	utf32_str = to_utf32(utf8_str)
 
 	! Convert from font units to pixels
-	scaling = pix_per_em / ttf%units_per_em
+	pix_per_unit = pix_per_em / ttf%units_per_em
 
 	!print *, 'utf32_str = ', utf32_str
 
@@ -1009,7 +1009,7 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 		! TODO: handle case where nlong_mtx < nglyphs?  Need to parse more data
 		! from hmtx table
-		x = x + nint(scaling * ttf%advance_widths( iglyph ))
+		x = x + nint(pix_per_unit * ttf%advance_widths( iglyph ))
 		!print *, 'advance_width = ', ttf%advance_widths( iglyph )
 
 	end do
@@ -1035,7 +1035,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
 	!********
 
-	double precision :: scaling
+	double precision :: pix_per_unit
 
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
@@ -1062,7 +1062,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	!print '(2i6)', glyph%x
 
 	! Convert from font units to pixels
-	scaling = pix_per_em / ttf%units_per_em
+	pix_per_unit = pix_per_em / ttf%units_per_em
 
 	! TODO: render onto a subcanvas with a local origin at x == 0, then
 	! translate and blend that into the global canvas to avoid resolution
@@ -1079,8 +1079,8 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 			]
 
 		! Apply global transform (resolution, translation).  TODO: nint() ibid
-		x(1,i) = int( scaling * x(1,i) + x0)
-		x(2,i) = int(-scaling * x(2,i) + y0)  ! invert y for y-down img coords
+		x(1,i) = int( pix_per_unit * x(1,i) + x0)
+		x(2,i) = int(-pix_per_unit * x(2,i) + y0)  ! invert y for y-down img coords
 
 	end do
 
