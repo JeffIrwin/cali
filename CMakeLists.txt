@@ -18,8 +18,7 @@ add_compile_options("-fopenmp")
 add_compile_options("-Wno-tabs")
 add_compile_options("-Wno-maybe-uninitialized")
 
-## TODO: enable -Werror because I inevitably let warnings back in.  Test CI first
-#add_compile_options("-Werror")
+add_compile_options("-Werror")
 
 #add_compile_options("-std=gnu")
 #add_compile_options("-pedantic") # pedantic warns about convert='big_endian'
