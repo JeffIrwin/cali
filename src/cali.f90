@@ -987,6 +987,8 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 	!print *, 'len = ', len(utf8_str)
 
+	allocate(utf32_str(0)) ! workaround
+
 	! There's a little memory overhead here converting the whole string to
 	! utf32. We only need to convert 1 char at a time to draw it
 	utf32_str = to_utf32(utf8_str)
@@ -1503,6 +1505,7 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
+! - batch specimens for all installed fonts
 ! - unit test diffs
 !   * then change the way rounding is done in draw_glyph()
 ! - make a specimen() fn (and program?) that exports a specimen for a given
