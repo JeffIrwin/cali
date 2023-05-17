@@ -98,21 +98,24 @@ program main
 
 	character(len = :), allocatable :: str
 
-	double precision :: pixels_per_em
+	double precision :: pix_per_em
 
-	integer :: line_height, left_margin
+	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
-	integer(kind = 4), allocatable :: canvas(:,:)
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	type(args_t) :: args
 	type(ttf_t)  :: ttf, ttfi
 
-	write(*,*) 'cali 0.0.2'  ! TODO: parameterize and move to lib
+	write(*,*) 'cali '// &
+		to_str(CALI_MAJOR)//'.'// &
+		to_str(CALI_MINOR)//'.'// &
+		to_str(CALI_PATCH)
 	write(*,*)
 
 	args = parse_args()
 	ttf  = read_ttf(args%ttf_file)
-	!ttfi = read_ttf('./fonts/computer-modern/cmunti.ttf')  ! italic
+	ttfi = read_ttf('./fonts/noto-sans/NotoSans-Italic.ttf')
 
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
@@ -121,28 +124,26 @@ program main
 	bg  = new_color(int(z'e8e6cbff',8))
 	bg2 = fg3
 
-	canvas = new_canvas(1500, 600, bg)
-	canvas(:, 300:) = bg2
+	cv = new_canvas(1500, 600, bg)
+	cv(:, 380:) = bg2
 
-	pixels_per_em = 140.d0
-	line_height = nint(1.2 * pixels_per_em)
-	left_margin = 100
+	pix_per_em = 140.d0
+	line_height = nint(1.2 * pix_per_em)
+	lmargin = 100
 
-	call draw_str(canvas, fg, ttf, "Hello, world!", &
-		left_margin, 1 * line_height, pixels_per_em)
+	str = "Universitätsstraße"
+	call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	call draw_str(canvas, fg, ttf, "foo, bar, baz", &
-		left_margin, 2 * line_height, pixels_per_em)
+	str = "Вокзал ताज महल"
+	call draw_str(cv, fg, ttf, str, lmargin, 2 * line_height, pix_per_em)
 
 	str = "Καλλι"
-	!str = "Universitätsstraße"
-	!str = "to typeset"
-	!str = "Привет"
-	!str = "Яблоко"
-	!str = "Hôtel français"
-	call draw_str(canvas, fg2, ttf, str, left_margin, 3 * line_height, pixels_per_em)
+	str = "Привет"
+	str = "Hôtel français"
+	!str = "مرحبًا" ! calibri includes arabic
+	call draw_str(cv, fg2, ttfi, str, lmargin, 3 * line_height, pix_per_em)
 
-	call write_img(canvas, 'test.ppm')
+	call write_img(cv, 'test.ppm')
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)

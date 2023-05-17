@@ -5,6 +5,11 @@ module cali_m
 
 	implicit none
 
+	integer, parameter :: &
+		CALI_MAJOR = 0, &
+		CALI_MINOR = 0, &
+		CALI_PATCH = 2
+
 	integer, parameter ::  &
 		EXIT_SUCCESS =  0, &
 		EXIT_FAILURE = -1, &
@@ -63,8 +68,10 @@ module cali_m
 	type glyph_t
 
 		! simple
-		integer(kind = 8) :: ncontours, xmin, ymin, xmax, ymax, ninst, npts
-		integer(kind = 8), allocatable :: x(:,:), end_pts(:)  ! TODO: use 4-bytes for x
+		integer(kind = 8) :: xmin, ymin, xmax, ymax, ninst
+		integer(kind = 8), allocatable :: x(:,:) ! TODO: use 4-bytes for x
+		integer(kind = 4), allocatable :: end_pts(:)  ! TODO: use 4-bytes for x
+		integer(kind = 4) :: ncontours, npts
 		integer(kind = 2), allocatable :: flags(:)
 
 		! compound
@@ -165,7 +172,7 @@ function read_fword(unit) result(fword)
 	! i16 as separate types, so we do too
 
 	integer, intent(in) :: unit
-	integer(kind = 2) :: fword
+	integer(kind = 8) :: fword
 
 	fword = read_i16(unit)
 
@@ -176,7 +183,7 @@ end function read_fword
 function read_ufword(unit) result(fword)
 
 	integer, intent(in) :: unit
-	integer(kind = 2) :: fword
+	integer(kind = 8) :: fword
 
 	fword = read_u16(unit)
 
@@ -298,8 +305,8 @@ function read_ttf(filename) result(ttf)
 
 	!********
 
-	integer :: io, iu, nglyph_indices
-	integer(kind = 8) :: i, head, maxp, sum_, filesize, reserved
+	integer :: io, iu
+	integer(kind = 8) :: i, head, maxp, sum_, filesize, reserved, nglyph_indices
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -404,7 +411,6 @@ function read_ttf(filename) result(ttf)
 	ttf%index2loc_fmt  = read_i16(iu)
 	ttf%glyph_data_fmt = read_i16(iu)
 
-	!print *, 'mac_style      = ', ttf%mac_style
 	!print *, 'low_rec_ppem   = ', ttf%low_rec_ppem
 	!print *, 'font_dir_hint  = ', ttf%font_dir_hint
 	!print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
@@ -488,7 +494,7 @@ function read_ttf(filename) result(ttf)
 
 			! cormorant garamond has a mixture of small positive and negative
 			! offsets.  choose middle of u16 range for modulo cutoff
-			if (ttf%cmap%id_delta(i) > int(z'ffff',4)/2) then
+			if (ttf%cmap%id_delta(i) > int(z'fffe',4)/2) then
 				ttf%cmap%id_delta(i) = ttf%cmap%id_delta(i) - int(z'10000')
 			end if
 
@@ -713,8 +719,8 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 		!USE_MTX        = int(b'0000001000000000'), &
 		!OVERLAP_COMP   = int(b'0000010000000000')
 
-	integer :: j, length, offset_next
-	integer(kind = 8) :: i, offset, pos, arg1, arg2
+	integer :: i, j
+	integer(kind = 8) :: offset, offset_next, length, pos
 	integer(kind = 2) :: flag, nrepeat, is_byte, delta
 
 	!print *, 'glyph index = ', iglyph
@@ -777,7 +783,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				call exit(EXIT_FAILURE)
 			end if
 
-			flag = read_u16(iu)
+			flag = int(read_u16(iu),2)
 
 			glyph%comps(i)%index_ = read_u16(iu)
 
@@ -866,7 +872,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	allocate(glyph%end_pts( glyph%ncontours ))
 	do i = 1, glyph%ncontours
-		glyph%end_pts(i) = read_u16(iu)
+		glyph%end_pts(i) = int(read_u16(iu))
 	end do
 
 	!print *, 'end_pts = ', glyph%end_pts
@@ -949,6 +955,10 @@ end function read_glyph
 subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 
 	! Draw a string on canvas cv starting at pixel x0 left, y0 bottom
+	!
+	! TODO: encapsulate color and pix_per_em into a "style" struct.  Also
+	! include letter-spacing (tracking).  Keep this fn and make a copy for
+	! compatibility, then update tests and delete current fn
 
 	use utf_m
 
@@ -1037,7 +1047,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 		do i = 1, glyph%ncomps
 			call draw_glyph(cv, color, ttf, &
 				ttf%glyphs( glyph%comps(i)%index_ ), x0, y0, pix_per_em, &
-				            glyph%comps(i)%t       )
+				            glyph%comps(i)%t)
 		end do
 
 		return
@@ -1060,10 +1070,10 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	do i = 1, glyph%npts
 
 		! Apply t transform first
-		x(:,i) = & ! TODO: nint and update tests? or make x double
+		x(:,i) = & ! TODO: nint and update tests? better yet, make x double and don't round until final step
 			[    &
-				t%m * (t%a * x(1,i) / t%m + t%c * x(2,i) / t%m + t%e), &
-				t%n * (t%b * x(1,i) / t%n + t%d * x(2,i) / t%n + t%f)  &
+				int(t%m * (t%a * x(1,i) / t%m + t%c * x(2,i) / t%m + t%e)), &
+				int(t%n * (t%b * x(1,i) / t%n + t%d * x(2,i) / t%n + t%f))  &
 			]
 
 		! Apply global transform (resolution, translation).  TODO: nint() ibid
@@ -1092,6 +1102,10 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 			if (iand(flag , ON_CURVE) /= 0 .and. &
 			    iand(flagn, ON_CURVE) /= 0) then
 
+				! This is where nint() rounding should happen, AND THEN
+				! translate by x0, y0 ints.  Similarly with Bezier curves below,
+				! with points a, b, and c being doubles until final
+				! draw_bezier2() call
 				call draw_line(cv, color, x(:,j), x(:,jn))
 
 			else if (iand(flag , ON_CURVE) == 0) then
@@ -1124,7 +1138,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 				if (iand(flagp, ON_CURVE) /= 0) then
 					a = x(:,jp)
 				else
-					a = int(0.5d0 * (x(:,j) + x(:,jp)))
+					a = int(0.5d0 * (x(:,j) + x(:,jp))) ! TODO: don't cast yet
 				end if
 
 				! c is end point on curve
@@ -1489,12 +1503,11 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - version
-! - readme
+! - unit test diffs
+!   * then change the way rounding is done in draw_glyph()
 ! - make a specimen() fn (and program?) that exports a specimen for a given
 !   font, maybe with some highlight words/chars as args.  unit tests could
 !   leverage this
-! - unit test diffs
 ! - fill-in contours instead of just outlines
 ! - other config args?  json input for app only
 !   * img size
@@ -1503,9 +1516,11 @@ end module cali_m
 !   * text filename (or directly as a string)
 !   * resolution / font size
 ! - horizontal spacing
+!   * letter-spacing (tracking) style arg
 !   * more advanced kerning using the 'kern' table
 !   * advanceWidth from 'hmtx' table done
 ! - ligatures
 ! - anti-aliasing?  doubtful
+! - png export, OpenGL/SDL bindings?
 ! - vector output format, e.g. ps, pdf, or svg?
 
