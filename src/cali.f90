@@ -1500,12 +1500,110 @@ end function new_color
 
 !===============================================================================
 
+function basename(filename)
+	character(len = *), intent(in)  :: filename
+	character(len = :), allocatable :: basename
+	!********
+	integer :: beg_, end_, i
+
+	beg_ = 1
+	end_ = len(filename)
+
+	print *, 'len = ', end_
+
+	i = scan(filename, '/\', .true.)
+	if (i /= 0) beg_ = i + 1
+
+	i = scan(filename(beg_:), '.')
+	if (i /= 0) end_ = beg_ + i - 2
+
+	basename = filename(beg_: end_)
+	print *, 'beg_, end_ = ', beg_, end_
+
+end function basename
+
+!===============================================================================
+
+subroutine specimen(ttf_filename)
+
+	! Make a specimen for the given ttf file
+
+	character(len = *), intent(in) :: ttf_filename
+
+	!********
+
+	character(len = :), allocatable :: str, ppm_filename
+
+	double precision :: pix_per_em
+
+	integer :: line_height, lmargin, factor
+	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
+	integer(kind = 4), allocatable :: cv(:,:)!, cv2(:,:)
+
+	type(ttf_t)  :: ttf!, ttfi
+
+	ttf  = read_ttf(ttf_filename)
+	!ttfi = read_ttf('./fonts/cormorant-garamond/CormorantGaramond-Italic.ttf')
+
+	! foreground/background colors
+	fg  = new_color(int(z'414142ff',8))
+	fg2 = new_color(int(z'000000ff',8))
+	fg3 = new_color(int(z'003366ff',8))
+	fg4 = new_color(int(z'929497ff',8))
+	bg  = new_color(int(z'e9e4d1ff',8))
+	bg2 = new_color(int(z'd7a676ff',8))
+
+	allocate(cv(0,0))
+
+	! TODO: add this scaling factor to other tests
+	factor = 1
+
+	cv = new_canvas(800*factor, 945*factor, bg)
+	cv(:, 631*factor:) = bg2
+
+	! TODO: make these global parameters shared by multiple testing routines
+	pix_per_em = 75.d0*factor
+	line_height = nint(1.2 * pix_per_em)
+	lmargin = 20*factor
+
+	str = basename(ttf_filename)
+	call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
+
+	str = "Aa Ee Rr"
+	call draw_str(cv, fg2, ttf , str, lmargin, 2 * line_height, pix_per_em)
+	call draw_str(cv, fg2, ttf , str, lmargin, 3 * line_height, pix_per_em)
+
+	str = "Q"
+	call draw_str(cv, fg2, ttf, str, 450*factor, 5 * line_height, 5 * pix_per_em)
+
+	str = "HEADLINE"
+	call draw_str(cv, fg3, ttf, str, 200*factor, 6 * line_height, pix_per_em)
+
+	! TODO: increase spacing for remaining strs.  need extra arg for draw_str.
+	! maybe make style struct? fg, pix_per_em, and hor spacing factor
+	str = "abcdefghijklm"
+	!str = "გთხოვთ ახლავე გაიაროთ"
+	call draw_str(cv, fg4, ttf , str, lmargin, 8 * line_height, pix_per_em)
+
+	str = "nopqrstuvwxyz"
+	!str = "კონფერენციაზე დასასწრებად"
+	call draw_str(cv, fg4, ttf , str, lmargin, 9 * line_height, pix_per_em)
+
+	str = "0123456789"
+	call draw_str(cv, fg4, ttf , str, 200*factor, 10 * line_height, pix_per_em)
+
+	ppm_filename = "./build/"//basename(ttf_filename)//".ppm"
+	call write_img(cv, ppm_filename)
+
+end subroutine specimen
+
+!===============================================================================
+
 end module cali_m
 
 !===============================================================================
 
 ! TODO:
-! - batch specimens for all installed fonts
 ! - unit test diffs
 !   * then change the way rounding is done in draw_glyph()
 ! - make a specimen() fn (and program?) that exports a specimen for a given

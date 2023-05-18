@@ -96,16 +96,16 @@ program main
 
 	implicit none
 
-	character(len = :), allocatable :: str
+	!character(len = :), allocatable :: str
 
-	double precision :: pix_per_em
+	!double precision :: pix_per_em
 
-	integer :: line_height, lmargin
-	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:)
+	!integer :: line_height, lmargin
+	!integer(kind = 4) :: fg, fg2, fg3, bg, bg2
+	!integer(kind = 4), allocatable :: cv(:,:)
 
 	type(args_t) :: args
-	type(ttf_t)  :: ttf, ttfi
+	!type(ttf_t)  :: ttf, ttfi
 
 	write(*,*) 'cali '// &
 		to_str(CALI_MAJOR)//'.'// &
@@ -114,36 +114,37 @@ program main
 	write(*,*)
 
 	args = parse_args()
-	ttf  = read_ttf(args%ttf_file)
-	ttfi = read_ttf('./fonts/noto-sans/NotoSans-Italic.ttf')
+	call specimen(args%ttf_file)
 
-	! foreground/background colors
-	fg  = new_color(int(z'000000ff',8))
-	fg2 = new_color(int(z'ffffffff',8))
-	fg3 = new_color(int(z'2a7fffff',8))
-	bg  = new_color(int(z'e8e6cbff',8))
-	bg2 = fg3
+	!ttf  = read_ttf(args%ttf_file)
+	!ttfi = read_ttf('./fonts/noto-sans/NotoSans-Italic.ttf')
 
-	cv = new_canvas(1500, 600, bg)
-	cv(:, 380:) = bg2
+	!! foreground/background colors
+	!fg  = new_color(int(z'000000ff',8))
+	!fg2 = new_color(int(z'ffffffff',8))
+	!fg3 = new_color(int(z'2a7fffff',8))
+	!bg  = new_color(int(z'e8e6cbff',8))
+	!bg2 = fg3
 
-	pix_per_em = 140.d0
-	line_height = nint(1.2 * pix_per_em)
-	lmargin = 100
+	!cv = new_canvas(1500, 600, bg)
+	!cv(:, 380:) = bg2
 
-	str = "Universitätsstraße"
-	call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
+	!pix_per_em = 140.d0
+	!line_height = nint(1.2 * pix_per_em)
+	!lmargin = 100
 
-	str = "Вокзал ताज महल"
-	call draw_str(cv, fg, ttf, str, lmargin, 2 * line_height, pix_per_em)
+	!str = "Universitätsstraße"
+	!call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
 
-	str = "Καλλι"
-	str = "Привет"
-	str = "Hôtel français"
-	!str = "مرحبًا" ! calibri includes arabic
-	call draw_str(cv, fg2, ttfi, str, lmargin, 3 * line_height, pix_per_em)
+	!str = "Вокзал ताज महल"
+	!call draw_str(cv, fg, ttf, str, lmargin, 2 * line_height, pix_per_em)
 
-	call write_img(cv, 'test.ppm')
+	!str = "Καλλι"
+	!str = "Hôtel français"
+	!!str = "مرحبًا" ! calibri includes arabic
+	!call draw_str(cv, fg2, ttfi, str, lmargin, 3 * line_height, pix_per_em)
+
+	!call write_img(cv, 'test.ppm')
 
 	write(*,*) FG_BRIGHT_GREEN//'Finished cali'//COLOR_RESET
 	write(*,*)
