@@ -1574,10 +1574,10 @@ subroutine specimen(ttf_filename)
 	call draw_str(cv, fg2, ttf , str, lmargin, 3 * line_height, pix_per_em)
 
 	str = "Q"
-	call draw_str(cv, fg2, ttf, str, 450*factor, 5 * line_height, 5 * pix_per_em)
+	call draw_str(cv, fg2, ttf, str, 450*factor, nint(4.5 * line_height), 5 * pix_per_em)
 
-	str = "HEADLINE"
-	call draw_str(cv, fg3, ttf, str, 200*factor, 6 * line_height, pix_per_em)
+	str = "Calligraphy"
+	call draw_str(cv, fg3, ttf, str, 150*factor, 6 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs.  need extra arg for draw_str.
 	! maybe make style struct? fg, pix_per_em, and hor spacing factor
@@ -1604,6 +1604,7 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
+! - add color randomizer to specimens.  seed rng w/ font name?
 ! - unit test diffs
 !   * then change the way rounding is done in draw_glyph()
 ! - make a specimen() fn (and program?) that exports a specimen for a given
