@@ -306,7 +306,7 @@ function read_ttf(filename) result(ttf)
 	!********
 
 	integer :: io, iu
-	integer(kind = 8) :: i, head, maxp, sum_, filesize, reserved, nglyph_indices
+	integer(kind = 8) :: i, sum_, filesize, reserved, nglyph_indices
 
 	open(newunit = iu, file = filename, action = 'read', iostat = io, &
 		access = 'stream', convert = 'big_endian')
@@ -365,9 +365,7 @@ function read_ttf(filename) result(ttf)
 	!
 	! Offsets are already saved, so we don't need to save old positions before
 	! fseek() now unlike in table checksum verification
-	head = ttf%get_table("head")
-	call fseek(iu, ttf%tables(head)%offset, SEEK_ABS)
-	! call fseek_table("head")  ! TODO: implement this fn for above 2 lines
+	call fseek_table(iu, ttf, "head")
 
 	ttf%vers  = read_fixed(iu)
 	ttf%font_rev = read_fixed(iu)
@@ -416,8 +414,7 @@ function read_ttf(filename) result(ttf)
 	!print *, 'index2loc_fmt  = ', ttf%index2loc_fmt
 	!print *, 'glyph_data_fmt = ', ttf%glyph_data_fmt
 
-	maxp = ttf%get_table("maxp")
-	call fseek(iu, ttf%tables(maxp)%offset, SEEK_ABS)
+	call fseek_table(iu, ttf, "maxp")
 	ttf%maxp_vers = read_fixed(iu)
 	ttf%nglyphs   = read_u16(iu)
 
@@ -554,7 +551,7 @@ function read_ttf(filename) result(ttf)
 
 	!********
 
-	call fseek(iu, ttf%tables( ttf%get_table("hhea") )%offset, SEEK_ABS)
+	call fseek_table(iu, ttf, "hhea")
 
 	ttf%hhea_vers = read_fixed(iu)
 	ttf%ascent    = read_fword(iu)
@@ -579,8 +576,7 @@ function read_ttf(filename) result(ttf)
 
 	!********
 
-	! TODO: make seek table fn for this line
-	call fseek(iu, ttf%tables( ttf%get_table("hmtx") )%offset, SEEK_ABS)
+	call fseek_table(iu, ttf, "hmtx")
 
 	allocate(ttf%advance_widths( 0: ttf%nlong_mtx ))
 	do i = 0, ttf%nlong_mtx - 1
@@ -609,6 +605,18 @@ function read_ttf(filename) result(ttf)
 	!print *, ''
 
 end function read_ttf
+
+!===============================================================================
+
+subroutine fseek_table(iu, ttf, tag)
+
+	integer, intent(in) :: iu
+	type(ttf_t), intent(in) :: ttf
+	character(len = *), intent(in) :: tag
+
+	call fseek(iu, ttf%tables( ttf%get_table(tag) )%offset, SEEK_ABS)
+
+end subroutine fseek_table
 
 !===============================================================================
 
@@ -1669,11 +1677,10 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - then change the way rounding is done in draw_glyph()
+! - fill-in contours instead of just outlines
 ! - make a specimen() fn (and program?) that exports a specimen for a given
 !   font, maybe with some highlight words/chars as args.  unit tests could
 !   leverage this
-! - fill-in contours instead of just outlines
 ! - other config args?  json input for app only
 !   * img size
 !   * fg, bg colors
