@@ -1324,6 +1324,33 @@ end subroutine delete_file
 
 !===============================================================================
 
+subroutine write_img_diff(cv1, cv2, filename)
+
+	! Write a diff between two canvases with differences highlighted in magenta
+
+	integer(kind = 4), intent(in) :: cv1(:,:), cv2(:,:)
+	character(len = *), intent(in) :: filename
+	!********
+	integer(kind = 4), allocatable :: cv(:,:)
+	integer(kind = 4) :: diff_color
+	integer :: ix, iy
+
+	allocate(cv(0,0))
+	cv = cv1
+
+	diff_color = new_color(int(z'ff00ffff',8))
+	do iy = 1, size(cv,2)
+	do ix = 1, size(cv,1)
+		if (cv1(ix,iy) /= cv2(ix,iy)) cv(ix,iy) = diff_color
+	end do
+	end do
+
+	call write_img(cv, filename)
+
+end subroutine write_img_diff
+
+!===============================================================================
+
 subroutine write_img(cv, filename)
 
 	! Write a canvas cv to a ppm image file
@@ -1539,8 +1566,6 @@ end function rand_dark
 
 function rand_light() result(color)
 
-	! 0: 255
-
 	integer(kind = 4) :: color
 
 	color = ior(int(ishft(int(255 - rand() * 85), 3 * 8), 4), &
@@ -1573,20 +1598,9 @@ subroutine specimen(ttf_filename)
 	ttf  = read_ttf(ttf_filename)
 	!ttfi = read_ttf('./fonts/cormorant-garamond/CormorantGaramond-Italic.ttf')
 
-	!! Seed RNG with filename char sum for random color generation
-	!seed = 0
-	!do i = 1, len(ttf_filename)
-	!	seed = seed + iachar(ttf_filename(i:i))
-	!	print *, 'iachar, seed = ', iachar(ttf_filename(i:i)), seed
-	!end do
 	seed = int(ttf%checksum_adj, 4)
-	print *, 'seed = ', seed
+	!print *, 'seed = ', seed
 	call srand(seed)
-
-	!bg2 = ior(int(ishft(int(rand() * 85), 3 * 8), 4), &
-	!      ior(int(ishft(int(rand() * 85), 2 * 8), 4), &
-	!      ior(int(ishft(int(rand() * 85), 1 * 8), 4), &
-	!          int(ishft(int(z'ff',2), 0 * 8), 4))))
 
 	! foreground/background colors
 	fg  = new_color(int(z'000000ff',8))
@@ -1598,7 +1612,6 @@ subroutine specimen(ttf_filename)
 
 	allocate(cv(0,0))
 
-	! TODO: add this scaling factor to other tests
 	factor = 1
 
 	cv = new_canvas(800*factor, 945*factor, bg)
@@ -1647,9 +1660,7 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - add color randomizer to specimens.  seed rng w/ font name?
-! - unit test diffs
-!   * then change the way rounding is done in draw_glyph()
+! - then change the way rounding is done in draw_glyph()
 ! - make a specimen() fn (and program?) that exports a specimen for a given
 !   font, maybe with some highlight words/chars as args.  unit tests could
 !   leverage this

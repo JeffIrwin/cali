@@ -175,7 +175,7 @@ subroutine test_cm(npass, nfail)
 
 	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
@@ -224,15 +224,7 @@ subroutine test_cm(npass, nfail)
 	call draw_str(cv, fg2, ttf , str, 200, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
-
-	! TODO: clean up hard-coded file paths
-	cv2 = read_img("./data/test-"//sfx//".ppm")
-	if (all(cv == cv2)) then
-		npass = npass + 1
-	else
-		nfail = nfail + 1
-	end if
-	! TODO: log error message per-test for failures
+	call diff_test(npass, nfail, cv, sfx)
 
 end subroutine test_cm
 
@@ -254,7 +246,7 @@ subroutine test_ubuntu(npass, nfail)
 
 	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
@@ -303,14 +295,7 @@ subroutine test_ubuntu(npass, nfail)
 	call draw_str(cv, fg4, ttf , str, 200, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
-
-	! TODO: clean up hard-coded file path
-	cv2 = read_img("./data/test-"//sfx//".ppm")
-	if (all(cv == cv2)) then
-		npass = npass + 1
-	else
-		nfail = nfail + 1
-	end if
+	call diff_test(npass, nfail, cv, sfx)
 
 end subroutine test_ubuntu
 
@@ -332,7 +317,7 @@ subroutine test_garamond(npass, nfail)
 
 	integer :: line_height, lmargin, factor
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
@@ -361,7 +346,7 @@ subroutine test_garamond(npass, nfail)
 	lmargin = 20*factor
 
 	str = "Garamond"
-	call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
+	call draw_str(cv, fg, ttf, str, 20+lmargin, 1 * line_height, pix_per_em)
 
 	str = "Aa Qq Rr"
 	call draw_str(cv, fg2, ttf , str, lmargin, 2 * line_height, pix_per_em)
@@ -385,16 +370,41 @@ subroutine test_garamond(npass, nfail)
 	call draw_str(cv, fg4, ttf , str, 200*factor, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
+	call diff_test(npass, nfail, cv, sfx)
+
+end subroutine test_garamond
+
+!===============================================================================
+
+subroutine diff_test(npass, nfail, cv1, sfx)
+
+	integer, intent(inout) :: npass, nfail
+	integer(kind = 4), intent(in) :: cv1(:,:)
+	character(len = *), intent(in) :: sfx
+	!********
+	character(len = :), allocatable :: dif_filename 
+	integer(kind = 4), allocatable :: cv2(:,:)
+
+	dif_filename = "build/diff-"//sfx//".ppm"
 
 	! TODO: clean up hard-coded file path
 	cv2 = read_img("./data/test-"//sfx//".ppm")
-	if (all(cv == cv2)) then
+	if (all(cv1 == cv2)) then
 		npass = npass + 1
 	else
+
+		call write_img_diff(cv1, cv2, dif_filename)
 		nfail = nfail + 1
+
+		write(*,*)
+		write(*,*) ERROR//'failure for test specimen "'//sfx//'"'
+		write(*,*) 'Test img diff written to "' &
+			//FG_BOLD_BRIGHT_RED//dif_filename//COLOR_RESET//'"'
+		write(*,*)
+
 	end if
 
-end subroutine test_garamond
+end subroutine diff_test
 
 !===============================================================================
 
@@ -414,7 +424,7 @@ subroutine test_bodoni(npass, nfail)
 
 	integer :: line_height, lmargin
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
@@ -463,14 +473,7 @@ subroutine test_bodoni(npass, nfail)
 	call draw_str(cv, fg4, ttf , str, 200, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
-
-	! TODO: clean up hard-coded file path
-	cv2 = read_img("./data/test-"//sfx//".ppm")
-	if (all(cv == cv2)) then
-		npass = npass + 1
-	else
-		nfail = nfail + 1
-	end if
+	call diff_test(npass, nfail, cv, sfx)
 
 end subroutine test_bodoni
 
@@ -492,7 +495,7 @@ subroutine test_noto_sans(npass, nfail)
 
 	integer :: line_height, lmargin, factor
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:), cv2(:,:)
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	type(ttf_t)  :: ttf, ttfi
 
@@ -545,14 +548,7 @@ subroutine test_noto_sans(npass, nfail)
 	call draw_str(cv, fg4, ttf , str, 200*factor, 10 * line_height, pix_per_em)
 
 	call write_img(cv, ppm_filename)
-
-	! TODO: clean up hard-coded file path
-	cv2 = read_img("./data/test-"//sfx//".ppm")
-	if (all(cv == cv2)) then
-		npass = npass + 1
-	else
-		nfail = nfail + 1
-	end if
+	call diff_test(npass, nfail, cv, sfx)
 
 end subroutine test_noto_sans
 
