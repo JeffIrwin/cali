@@ -346,7 +346,7 @@ subroutine test_garamond(npass, nfail)
 	lmargin = 20*factor
 
 	str = "Garamond"
-	call draw_str(cv, fg, ttf, str, 20+lmargin, 1 * line_height, pix_per_em)
+	call draw_str(cv, fg, ttf, str, lmargin, 1 * line_height, pix_per_em)
 
 	str = "Aa Qq Rr"
 	call draw_str(cv, fg2, ttf , str, lmargin, 2 * line_height, pix_per_em)
