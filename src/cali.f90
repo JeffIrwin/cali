@@ -1035,11 +1035,11 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
 	!********
 
-	double precision :: pix_per_unit
+	double precision :: pix_per_unit, a(ND), b(ND), c(ND)
+	double precision, allocatable :: x(:,:)
 
 	integer(kind = 2) :: flag, flagn, flagp
-	integer(kind = 8) :: i, j, start_pt, jp, jn, a(ND), b(ND), c(ND)
-	integer(kind = 8), allocatable :: x(:,:)  ! TODO: double?  it's scaled
+	integer(kind = 8) :: i, j, start_pt, jp, jn
 
 	if (glyph%ncontours < 0) then
 		!write(*,*) ERROR//'compound glyphs are not supported'
@@ -1067,20 +1067,22 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	! TODO: render onto a subcanvas with a local origin at x == 0, then
 	! translate and blend that into the global canvas to avoid resolution
 	! issues at high x0.  Or just shift args for draw_line/draw_bezier2 calls
-	x = glyph%x
+
+	!x = glyph%x
+	allocate(x( size(glyph%x,1), size(glyph%x,2)))
 
 	do i = 1, glyph%npts
 
 		! Apply t transform first
-		x(:,i) = & ! TODO: nint and update tests? better yet, make x double and don't round until final step
+		x(:,i) = &
 			[    &
-				int(t%m * (t%a * x(1,i) / t%m + t%c * x(2,i) / t%m + t%e)), &
-				int(t%n * (t%b * x(1,i) / t%n + t%d * x(2,i) / t%n + t%f))  &
+				t%m * (t%a * glyph%x(1,i) / t%m + t%c * glyph%x(2,i) / t%m + t%e), &
+				t%n * (t%b * glyph%x(1,i) / t%n + t%d * glyph%x(2,i) / t%n + t%f)  &
 			]
 
-		! Apply global transform (resolution, translation).  TODO: nint() ibid
-		x(1,i) = int( pix_per_unit * x(1,i) + x0)
-		x(2,i) = int(-pix_per_unit * x(2,i) + y0)  ! invert y for y-down img coords
+		! Apply global transform (resolution, translation)
+		x(1,i) =  pix_per_unit * x(1,i) + x0
+		x(2,i) = -pix_per_unit * x(2,i) + y0  ! invert y for y-down img coords
 
 	end do
 
@@ -1140,14 +1142,14 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 				if (iand(flagp, ON_CURVE) /= 0) then
 					a = x(:,jp)
 				else
-					a = int(0.5d0 * (x(:,j) + x(:,jp))) ! TODO: don't cast yet
+					a = 0.5d0 * (x(:,j) + x(:,jp))
 				end if
 
 				! c is end point on curve
 				if (iand(flagn, ON_CURVE) /= 0) then
 					c = x(:,jn)
 				else
-					c = int(0.5d0 * (x(:,j) + x(:,jn)))
+					c = 0.5d0 * (x(:,j) + x(:,jn))
 				end if
 
 				call draw_bezier2(cv, color, a, b, c)
@@ -1169,20 +1171,21 @@ subroutine draw_bezier2(cv, color, p1, p2, p3)
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
-	integer(kind = 8), intent(in) :: p1(ND), p2(ND), p3(ND)
+	double precision, intent(in) :: p1(ND), p2(ND), p3(ND)
 
 	!********
 
 	double precision :: t
 
 	integer :: it, n
-	integer(kind = 8) :: p(ND)
+	!integer(kind = 8) :: p(ND)
+	double precision :: p(ND)
 
 	n = 2 * int(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2)))
 	do it = 0, n
 
 		t = 1.d0 * it / n
-		p = nint((1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3)
+		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
 		call draw_pixel(cv, color, p)
 
 	end do
@@ -1195,14 +1198,20 @@ subroutine draw_pixel(cv, color, p)
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
-	integer(kind = 8), intent(in) :: p(ND)
+	!integer(kind = 8), intent(in) :: p(ND)
+	double precision, intent(in) :: p(ND)
+	!********
+	integer :: ip(ND)
+
+	ip(1) = nint(p(1))
+	ip(2) = nint(p(2))
 
 	! Check bounds.  TODO: set a flag to log *one* warning (not a warning
 	! per-pixel)
-	if (1 <= p(1) .and. p(1) <= size(cv,1) .and. &
-	    1 <= p(2) .and. p(2) <= size(cv,2)) then
+	if (1 <= ip(1) .and. ip(1) <= size(cv,1) .and. &
+	    1 <= ip(2) .and. ip(2) <= size(cv,2)) then
 
-		cv(p(1), p(2)) = color
+		cv(ip(1), ip(2)) = color
 
 	end if
 
@@ -1216,19 +1225,19 @@ subroutine draw_line(cv, color, p1, p2)
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
-	integer(kind = 8), intent(in) :: p1(ND), p2(ND)
+	double precision, intent(in) :: p1(ND), p2(ND)
 
 	!********
 
 	integer :: it, n
-	integer(kind = 8) :: p(ND)
+	double precision :: p(ND)
 	double precision :: t
 
 	n = 2 * int(maxval(abs(p2 - p1)))
 	do it = 0, n
 
 		t = 1.d0 * it / n
-		p = nint(p1 + t * (p2 - p1))
+		p = p1 + t * (p2 - p1)
 		call draw_pixel(cv, color, p)
 
 	end do
