@@ -1524,6 +1524,34 @@ end function basename
 
 !===============================================================================
 
+function rand_dark() result(color)
+
+	integer(kind = 4) :: color
+
+	color = ior(int(ishft(int(rand() * 85), 3 * 8), 4), &
+	        ior(int(ishft(int(rand() * 85), 2 * 8), 4), &
+	        ior(int(ishft(int(rand() * 85), 1 * 8), 4), &
+	            int(ishft(int(z'ff',2), 0 * 8), 4))))
+
+end function rand_dark
+
+!===============================================================================
+
+function rand_light() result(color)
+
+	! 0: 255
+
+	integer(kind = 4) :: color
+
+	color = ior(int(ishft(int(255 - rand() * 85), 3 * 8), 4), &
+	        ior(int(ishft(int(255 - rand() * 85), 2 * 8), 4), &
+	        ior(int(ishft(int(255 - rand() * 85), 1 * 8), 4), &
+	            int(ishft(int(z'ff',2), 0 * 8), 4))))
+
+end function rand_light
+
+!===============================================================================
+
 subroutine specimen(ttf_filename)
 
 	! Make a specimen for the given ttf file
@@ -1536,7 +1564,7 @@ subroutine specimen(ttf_filename)
 
 	double precision :: pix_per_em
 
-	integer :: line_height, lmargin, factor
+	integer :: line_height, lmargin, factor, seed
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
 	integer(kind = 4), allocatable :: cv(:,:)!, cv2(:,:)
 
@@ -1545,13 +1573,28 @@ subroutine specimen(ttf_filename)
 	ttf  = read_ttf(ttf_filename)
 	!ttfi = read_ttf('./fonts/cormorant-garamond/CormorantGaramond-Italic.ttf')
 
+	!! Seed RNG with filename char sum for random color generation
+	!seed = 0
+	!do i = 1, len(ttf_filename)
+	!	seed = seed + iachar(ttf_filename(i:i))
+	!	print *, 'iachar, seed = ', iachar(ttf_filename(i:i)), seed
+	!end do
+	seed = int(ttf%checksum_adj, 4)
+	print *, 'seed = ', seed
+	call srand(seed)
+
+	!bg2 = ior(int(ishft(int(rand() * 85), 3 * 8), 4), &
+	!      ior(int(ishft(int(rand() * 85), 2 * 8), 4), &
+	!      ior(int(ishft(int(rand() * 85), 1 * 8), 4), &
+	!          int(ishft(int(z'ff',2), 0 * 8), 4))))
+
 	! foreground/background colors
-	fg  = new_color(int(z'414142ff',8))
-	fg2 = new_color(int(z'000000ff',8))
-	fg3 = new_color(int(z'003366ff',8))
-	fg4 = new_color(int(z'929497ff',8))
-	bg  = new_color(int(z'e9e4d1ff',8))
-	bg2 = new_color(int(z'd7a676ff',8))
+	fg  = new_color(int(z'000000ff',8))
+	fg2 = rand_dark()
+	fg3 = rand_dark()
+	fg4 = new_color(int(z'ffffffff',8))
+	bg  = rand_light()
+	bg2 = rand_dark()
 
 	allocate(cv(0,0))
 
