@@ -1647,15 +1647,16 @@ subroutine specimen(ttf_filename)
 	ttf  = read_ttf(ttf_filename)
 	!ttfi = read_ttf('./fonts/cormorant-garamond/CormorantGaramond-Italic.ttf')
 
-	!! Seed RNG with checksum adjustment (happens to be the same for a lot of fonts)
-	!seed = int(ttf%checksum_adj, 4)
+	! Seed RNG with checksum adjustment (happens to be the same for a lot of fonts)
+	seed = int(ttf%checksum_adj, 4)
 
-	! Seed RNG with filename char sum for random color generation
-	seed = 0
-	do i = 1, len(ttf_filename)
-		seed = seed + iachar(ttf_filename(i:i))
-		print *, 'iachar, seed = ', iachar(ttf_filename(i:i)), seed
-	end do
+	!! Seed RNG with filename char sum for random color generation
+	!seed = 0
+	!do i = 1, len(ttf_filename)
+	!	seed = seed + iachar(ttf_filename(i:i))
+	!	print *, 'iachar, seed = ', iachar(ttf_filename(i:i)), seed
+	!end do
+
 	!print *, 'seed = ', seed
 	call srand(seed)
 
