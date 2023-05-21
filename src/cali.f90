@@ -578,7 +578,7 @@ function read_ttf(filename) result(ttf)
 
 	call fseek_table(iu, ttf, "hmtx")
 
-	allocate(ttf%advance_widths( 0: ttf%nlong_mtx ))
+	allocate(ttf%advance_widths( 0: ttf%nlong_mtx - 1))
 	do i = 0, ttf%nlong_mtx - 1
 		ttf%advance_widths(i) = read_u16(iu)
 		reserved = read_i16(iu)  ! could save leftSideBearing here
@@ -831,9 +831,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 				d = read_i16(iu) * (2.d0 ** (-14))
 
 			else if (iand(flag, HAS_2X2)      /= 0) then
-				write(*,*) ERROR//'untested HAS_2X2.  remove this exit to continue'
-				call exit(EXIT_FAILURE)
-
+				! tested in Amiri-BoldSlanted.ttf
 				a = read_i16(iu) * (2.d0 ** (-14))
 				b = read_i16(iu) * (2.d0 ** (-14))
 				c = read_i16(iu) * (2.d0 ** (-14))
@@ -1015,9 +1013,11 @@ subroutine draw_str(cv, color, ttf, utf8_str, x0, y0, pix_per_em)
 		call draw_glyph(cv, color , ttf, ttf%glyphs(iglyph), &
 			x, y0, pix_per_em, t)
 
-		! TODO: handle case where nlong_mtx < nglyphs?  Need to parse more data
-		! from hmtx table
-		x = x + nint(pix_per_unit * ttf%advance_widths( iglyph ))
+		! "the advanceWidth is assumed to be the same as the advanceWidth for the
+		! last entry above. The number of entries in this array is derived from
+		! the total number of glyphs minus numOfLongHorMetrics. This generally
+		! is used with a run of monospaced glyphs" -- hmtx docs
+		x = x + nint(pix_per_unit * ttf%advance_widths(min(iglyph, ttf%nlong_mtx - 1 )))
 		!print *, 'advance_width = ', ttf%advance_widths( iglyph )
 
 	end do
@@ -1553,7 +1553,7 @@ function basename(filename)
 	beg_ = 1
 	end_ = len(filename)
 
-	print *, 'len = ', end_
+	!print *, 'len = ', end_
 
 	i = scan(filename, '/\', .true.)
 	if (i /= 0) beg_ = i + 1
@@ -1562,7 +1562,7 @@ function basename(filename)
 	if (i /= 0) end_ = beg_ + i - 2
 
 	basename = filename(beg_: end_)
-	print *, 'beg_, end_ = ', beg_, end_
+	!print *, 'beg_, end_ = ', beg_, end_
 
 end function basename
 
@@ -1677,6 +1677,7 @@ end module cali_m
 
 ! TODO:
 ! - fill-in contours instead of just outlines
+! - cmap format 6, e.g. Candaral.ttf
 ! - make a specimen() fn (and program?) that exports a specimen for a given
 !   font, maybe with some highlight words/chars as args.  unit tests could
 !   leverage this
