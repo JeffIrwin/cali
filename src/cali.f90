@@ -86,10 +86,10 @@ module cali_m
 
 		integer(kind = 8) :: fmt_, length, language, nseg_x2, search_range, &
 			entry_select, range_shift, platform_id, platform_sid, offset, &
-			reserved_pad
+			reserved_pad, first_code, entry_count
 
 		integer(kind = 8), allocatable :: end_code(:), start_code(:), &
-			id_delta(:), id_range_offset(:), glyph_index_array(:)
+			id_delta(:), id_range_offset(:), glyph_ids(:)
 
 	end type cmap_t
 
@@ -450,15 +450,16 @@ function read_ttf(filename) result(ttf)
 		ttf%cmap%length   = read_u16(iu)
 		ttf%cmap%language = read_u16(iu)
 
-		allocate( ttf%cmap%glyph_index_array(0: 255) )
+		! Glyph index array
+		allocate( ttf%cmap%glyph_ids(0: 255) )
 
-		do i = 0, size( ttf%cmap%glyph_index_array ) - 1
-			ttf%cmap%glyph_index_array(i) = read_u8(iu)
+		do i = 0, size( ttf%cmap%glyph_ids ) - 1
+			ttf%cmap%glyph_ids(i) = read_u8(iu)
 		end do
 
-		!print *, 'glyph_index_array = '
-		!do i = 0, size( ttf%cmap%glyph_index_array ) - 1
-		!	print *, i, ttf%cmap%glyph_index_array(i)
+		!print *, 'glyph_ids = '
+		!do i = 0, size( ttf%cmap%glyph_ids ) - 1
+		!	print *, i, ttf%cmap%glyph_ids(i)
 		!end do
 
 	case (4)
@@ -508,17 +509,16 @@ function read_ttf(filename) result(ttf)
 		do i = 1, ttf%cmap%nseg_x2 / 2
 			if (ttf%cmap%id_range_offset(i) /= 0) then
 
-				!nglyph_indices = nglyph_indices + 1
 				nglyph_indices = nglyph_indices + &
 					ttf%cmap%end_code(i) - ttf%cmap%start_code(i) + 1
 
 			end if
 		end do
 
-		allocate(ttf%cmap%glyph_index_array( 0: nglyph_indices - 1))
+		allocate(ttf%cmap%glyph_ids( 0: nglyph_indices - 1))
 
-		do i = 0, size( ttf%cmap%glyph_index_array ) - 1
-			ttf%cmap%glyph_index_array(i) = read_u16(iu)
+		do i = 0, size( ttf%cmap%glyph_ids ) - 1
+			ttf%cmap%glyph_ids(i) = read_u16(iu)
 		end do
 
 		!print *, 'cmap fmt_         = ', ttf%cmap%fmt_
@@ -537,9 +537,30 @@ function read_ttf(filename) result(ttf)
 		!print *, ''
 		!print *, 'cmap id_range_offset = ', ttf%cmap%id_range_offset
 		!print *, ''
-		!print *, 'glyph_index_array = '
-		!do i = 0, size( ttf%cmap%glyph_index_array ) - 1
-		!	print *, i, ttf%cmap%glyph_index_array(i)
+		!print *, 'glyph_ids = '
+		!do i = 0, size( ttf%cmap%glyph_ids ) - 1
+		!	print *, i, ttf%cmap%glyph_ids(i)
+		!end do
+
+	case (6)
+		! e.g. C:/Windows/fonts/Candaral.ttf
+
+		ttf%cmap%length   = read_u16(iu)
+		ttf%cmap%language = read_u16(iu)
+
+		ttf%cmap%first_code  = read_u16(iu)
+		ttf%cmap%entry_count = read_u16(iu)
+
+		! Glyph index array
+		allocate( ttf%cmap%glyph_ids(0: ttf%cmap%entry_count - 1) )
+
+		do i = 0, size( ttf%cmap%glyph_ids ) - 1
+			ttf%cmap%glyph_ids(i) = read_u16(iu)
+		end do
+
+		!print *, 'glyph_ids = '
+		!do i = 0, size( ttf%cmap%glyph_ids ) - 1
+		!	print *, i, ttf%cmap%glyph_ids(i)
 		!end do
 
 	case default
@@ -626,7 +647,7 @@ function get_index(char32, ttf) result(i)
 
 	integer(kind = 4), intent(in) :: char32
 	type(ttf_t), intent(in) :: ttf
-	integer(kind = 8) :: i
+	integer(kind = 8) :: i, offset
 
 	!********
 
@@ -637,13 +658,13 @@ function get_index(char32, ttf) result(i)
 	case_fmt: select case (ttf%cmap%fmt_)
 	case (0)
 
-		if (char32 > ubound (ttf%cmap%glyph_index_array, 1) .or. &
-		    char32 < lbound (ttf%cmap%glyph_index_array, 1)) then
+		if (char32 > ubound (ttf%cmap%glyph_ids, 1) .or. &
+		    char32 < lbound (ttf%cmap%glyph_ids, 1)) then
 			! Missing character glyph
 			i = 0
 			exit case_fmt
 		end if
-		i = ttf%cmap%glyph_index_array(char32)
+		i = ttf%cmap%glyph_ids(char32)
 
 	case (4)
 
@@ -672,7 +693,7 @@ function get_index(char32, ttf) result(i)
 
 		if (ttf%cmap%id_range_offset(seg) /= 0) then
 			! Ref:  https://stackoverflow.com/a/61804360/4347028
-			i = ttf%cmap%glyph_index_array(seg - 1 - ttf%cmap%nseg_x2/2 + &
+			i = ttf%cmap%glyph_ids(seg - 1 - ttf%cmap%nseg_x2/2 + &
 				ttf%cmap%id_range_offset(seg) / 2 + &
 				char32 - ttf%cmap%start_code(seg))
 			!print *, 'ttf%cmap%id_range_offset(seg) = ', ttf%cmap%id_range_offset(seg)
@@ -681,6 +702,17 @@ function get_index(char32, ttf) result(i)
 			i = char32 + ttf%cmap%id_delta(seg)
 			!print *, 'ttf%cmap%id_delta(seg) = ', ttf%cmap%id_delta(seg)
 		end if
+
+	case (6)
+
+		offset = char32 - ttf%cmap%first_code
+		if (offset > ubound (ttf%cmap%glyph_ids, 1) .or. &
+		    offset < lbound (ttf%cmap%glyph_ids, 1)) then
+			! Missing character glyph
+			i = 0
+			exit case_fmt
+		end if
+		i = ttf%cmap%glyph_ids(offset)
 
 	end select case_fmt
 
@@ -1615,7 +1647,15 @@ subroutine specimen(ttf_filename)
 	ttf  = read_ttf(ttf_filename)
 	!ttfi = read_ttf('./fonts/cormorant-garamond/CormorantGaramond-Italic.ttf')
 
-	seed = int(ttf%checksum_adj, 4)
+	!! Seed RNG with checksum adjustment (happens to be the same for a lot of fonts)
+	!seed = int(ttf%checksum_adj, 4)
+
+	! Seed RNG with filename char sum for random color generation
+	seed = 0
+	do i = 1, len(ttf_filename)
+		seed = seed + iachar(ttf_filename(i:i))
+		print *, 'iachar, seed = ', iachar(ttf_filename(i:i)), seed
+	end do
 	!print *, 'seed = ', seed
 	call srand(seed)
 
@@ -1677,7 +1717,8 @@ end module cali_m
 
 ! TODO:
 ! - fill-in contours instead of just outlines
-! - cmap format 6, e.g. Candaral.ttf
+! - cmap formats:
+!   * cmap format 14, e.g. seguiemj.ttf
 ! - make a specimen() fn (and program?) that exports a specimen for a given
 !   font, maybe with some highlight words/chars as args.  unit tests could
 !   leverage this
