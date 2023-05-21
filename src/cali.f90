@@ -70,7 +70,7 @@ module cali_m
 		! simple
 		integer(kind = 8) :: xmin, ymin, xmax, ymax, ninst
 		integer(kind = 8), allocatable :: x(:,:) ! TODO: use 4-bytes for x
-		integer(kind = 4), allocatable :: end_pts(:)  ! TODO: use 4-bytes for x
+		integer(kind = 4), allocatable :: end_pts(:)
 		integer(kind = 4) :: ncontours, npts
 		integer(kind = 2), allocatable :: flags(:)
 
@@ -713,7 +713,7 @@ function read_glyph(iu, ttf, iglyph) result(glyph)
 
 	double precision :: a, b, c, d, e, f, m, n  ! affine transformation
 
-	integer, parameter :: MAX_COMP = 8
+	integer, parameter :: MAX_COMP = 64
 
 	integer(kind = 2), parameter :: &
 		ARGS_ARE_WORDS = int(b'0000000000000001'), &
@@ -1189,7 +1189,7 @@ subroutine draw_bezier2(cv, color, p1, p2, p3)
 	!integer(kind = 8) :: p(ND)
 	double precision :: p(ND)
 
-	n = 2 * int(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2)))
+	n = 2 * nint(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2))) + 1
 	do it = 0, n
 
 		t = 1.d0 * it / n
@@ -1241,7 +1241,7 @@ subroutine draw_line(cv, color, p1, p2)
 	double precision :: p(ND)
 	double precision :: t
 
-	n = 2 * int(maxval(abs(p2 - p1)))
+	n = 2 * nint(maxval(abs(p2 - p1))) + 1
 	do it = 0, n
 
 		t = 1.d0 * it / n
@@ -1634,7 +1634,6 @@ subroutine specimen(ttf_filename)
 	cv = new_canvas(800*factor, 945*factor, bg)
 	cv(:, 631*factor:) = bg2
 
-	! TODO: make these global parameters shared by multiple testing routines
 	pix_per_em = 75.d0*factor
 	line_height = nint(1.2 * pix_per_em)
 	lmargin = 20*factor
