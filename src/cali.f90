@@ -1078,7 +1078,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	double precision :: pix_per_unit, a(ND), b(ND), c(ND), p(ND), s
 	double precision, allocatable :: x(:,:)
 
-	integer :: it, n
+	integer :: it, n, ip(ND)
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn
 
@@ -1158,7 +1158,10 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 			
 					s = 1.d0 * it / n
 					p = x(:,j) + s * (x(:,jn) - x(:,j))
-					call draw_pixel(cv, color, p)
+					!ip(1) = nint(p(1))
+					!ip(2) = nint(p(2))
+					ip = nint(p)
+					call draw_pixel(cv, color, ip)
 			
 				end do
 
@@ -1208,7 +1211,10 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
 					s = 1.d0 * it / n
 					p = (1-s)**2 * a + 2*(1-s)*s * b + s**2 * c
-					call draw_pixel(cv, color, p)
+					!ip(1) = nint(p(1))
+					!ip(2) = nint(p(2))
+					ip = nint(p)
+					call draw_pixel(cv, color, ip)
 
 				end do
 
@@ -1252,17 +1258,17 @@ end subroutine draw_glyph
 
 !===============================================================================
 
-subroutine draw_pixel(cv, color, p)
+subroutine draw_pixel(cv, color, ip)
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
 	!integer(kind = 8), intent(in) :: p(ND)
-	double precision, intent(in) :: p(ND)
+	!double precision, intent(in) :: p(ND)
+	integer, intent(in) :: ip(ND)
 	!********
-	integer :: ip(ND)
 
-	ip(1) = nint(p(1))
-	ip(2) = nint(p(2))
+	!ip(1) = nint(p(1))
+	!ip(2) = nint(p(2))
 
 	! Check bounds.  TODO: set a flag to log *one* warning (not a warning
 	! per-pixel)
