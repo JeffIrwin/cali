@@ -1079,7 +1079,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	double precision, allocatable :: x(:,:)
 
 	integer :: it, n, ip(ND), ip0(ND), ipd(ND), ix, iy
-	integer :: wind_inc0, wind_incd
+	integer :: wind_inc0, wind_incd, wind_num
 	integer, allocatable :: wind(:,:)
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn
@@ -1202,6 +1202,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 							else if (ip(2) < ip0(2)) then
 
 								if (wind_inc0 == 0 .and. .not. defer) then
+								!if (.not. defer) then
 									defer = .true.
 									ipd = ip0
 									wind_incd = +1
@@ -1299,6 +1300,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 							else if (ip(2) < ip0(2)) then
 
 								if (wind_inc0 == 0 .and. .not. defer) then
+								!if (.not. defer) then
 									defer = .true.
 									ipd = ip0
 									wind_incd = +1
@@ -1332,12 +1334,22 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 		wind(ipd(1), ipd(2)) = wind(ipd(1), ipd(2)) + wind_incd
 	end if
 
+	!do iy = 1, size(cv,2)
+	!do ix = 1, size(cv,1)
+	!	if (wind(ix,iy) > 0) call draw_pixel(cv, grn, [ix,iy])
+	!	if (wind(ix,iy) < 0) call draw_pixel(cv, red, [ix,iy])
+	!end do
+	!end do
+
 	do iy = 1, size(cv,2)
+	wind_num = 0
 	do ix = 1, size(cv,1)
 
-		! TODO: draw_pixel() for debugging only
-		if (wind(ix,iy) > 0) call draw_pixel(cv, grn, [ix,iy])
-		if (wind(ix,iy) < 0) call draw_pixel(cv, red, [ix,iy])
+		!if (wind(ix,iy) > 0) call draw_pixel(cv, grn, [ix,iy])
+		!if (wind(ix,iy) < 0) call draw_pixel(cv, red, [ix,iy])
+
+		wind_num = wind_num + wind(ix,iy)
+		if (wind_num /= 0) call draw_pixel(cv, color, [ix,iy])
 
 	end do
 	end do
