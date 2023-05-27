@@ -1140,12 +1140,12 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	! bounding box of current glyph component, not whole canvas
 	allocate(wind( size(cv,1), size(cv,2) ))
 	wind = 0
-	wind_inc0 = 0
 
 	start_pt = 1
 	do i = 1, glyph%ncontours
 		first = .true.
 		defer = .false.
+		wind_inc0 = 0
 
 		do j = start_pt, glyph%end_pts(i) + 1
 			!print '(2i8)', x(:,j)
@@ -1273,7 +1273,6 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					p = (1-s)**2 * a + 2*(1-s)*s * b + s**2 * c
 					ip = nint(p)
 					!call draw_pixel(cv, color, ip)
-
 					if (first .or. any(ip /= ip0)) then
 						call draw_pixel(cv, color, ip)
 
@@ -1326,13 +1325,17 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 			end if
 		end do
 
+		!! Mark special points for visual debugging (1st point and deferred point)
+		!call draw_pixel(cv, new_color(int(z'0000ffff',8)), nint(x(:,start_pt)))
+		!call draw_pixel(cv, new_color(int(z'ff00ffff',8)), ipd)
+
+		! After wrapping around the entire contour, we can mark the deferred point
+		if (defer .and. wind_incd /= wind_inc0) then
+			wind(ipd(1), ipd(2)) = wind(ipd(1), ipd(2)) + wind_incd
+		end if
+
 		start_pt = glyph%end_pts(i) + 2
 	end do
-
-	! After wrapping around the entire color, we can mark the deferred point
-	if (wind_incd /= wind_inc0) then
-		wind(ipd(1), ipd(2)) = wind(ipd(1), ipd(2)) + wind_incd
-	end if
 
 	!do iy = 1, size(cv,2)
 	!do ix = 1, size(cv,1)
@@ -1843,7 +1846,7 @@ subroutine specimen(ttf_filename)
 	str = "Q"
 	call draw_str(cv, fg2, ttf, str, 450*factor, nint(4.5 * line_height), 5 * pix_per_em)
 
-	str = "Calligraphy"
+	str = "Big chungus"
 	call draw_str(cv, fg3, ttf, str, 150*factor, 6 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs.  need extra arg for draw_str.
