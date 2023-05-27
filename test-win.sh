@@ -2,7 +2,7 @@
 
 # This only works in WSL
 
-#set -e
+set -e
 
 ./build.sh
 
