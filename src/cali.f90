@@ -1075,9 +1075,10 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
 	!********
 
-	double precision :: pix_per_unit, a(ND), b(ND), c(ND)
+	double precision :: pix_per_unit, a(ND), b(ND), c(ND), p(ND), s
 	double precision, allocatable :: x(:,:)
 
+	integer :: it, n
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn
 
@@ -1150,7 +1151,16 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 				! translate by x0, y0 ints.  Similarly with Bezier curves below,
 				! with points a, b, and c being doubles until final
 				! draw_bezier2() call
-				call draw_line(cv, color, x(:,j), x(:,jn))
+				!call draw_line(cv, color, x(:,j), x(:,jn))
+
+				n = 2 * nint(maxval(abs(x(:,jn) - x(:,j)))) + 1
+				do it = 0, n
+			
+					s = 1.d0 * it / n
+					p = x(:,j) + s * (x(:,jn) - x(:,j))
+					call draw_pixel(cv, color, p)
+			
+				end do
 
 			else if (iand(flag , ON_CURVE) == 0) then
 
@@ -1192,7 +1202,15 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					c = 0.5d0 * (x(:,j) + x(:,jn))
 				end if
 
-				call draw_bezier2(cv, color, a, b, c)
+				!call draw_bezier2(cv, color, a, b, c)
+				n = 2 * nint(norm2(dble(b - a)) + norm2(dble(c - b))) + 1
+				do it = 0, n
+
+					s = 1.d0 * it / n
+					p = (1-s)**2 * a + 2*(1-s)*s * b + s**2 * c
+					call draw_pixel(cv, color, p)
+
+				end do
 
 			end if
 		end do
@@ -1204,33 +1222,33 @@ end subroutine draw_glyph
 
 !===============================================================================
 
-subroutine draw_bezier2(cv, color, p1, p2, p3)
-
-	! Draw a quadratic Bezier curve from start point p1 to end point p3 with
-	! middle off-curve control point p2 on canvas cv
-
-	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
-	integer(kind = 4), intent(in) :: color
-	double precision, intent(in) :: p1(ND), p2(ND), p3(ND)
-
-	!********
-
-	double precision :: t
-
-	integer :: it, n
-	!integer(kind = 8) :: p(ND)
-	double precision :: p(ND)
-
-	n = 2 * nint(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2))) + 1
-	do it = 0, n
-
-		t = 1.d0 * it / n
-		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
-		call draw_pixel(cv, color, p)
-
-	end do
-
-end subroutine draw_bezier2
+!subroutine draw_bezier2(cv, color, p1, p2, p3)
+!
+!	! Draw a quadratic Bezier curve from start point p1 to end point p3 with
+!	! middle off-curve control point p2 on canvas cv
+!
+!	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+!	integer(kind = 4), intent(in) :: color
+!	double precision, intent(in) :: p1(ND), p2(ND), p3(ND)
+!
+!	!********
+!
+!	double precision :: t
+!
+!	integer :: it, n
+!	!integer(kind = 8) :: p(ND)
+!	double precision :: p(ND)
+!
+!	n = 2 * nint(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2))) + 1
+!	do it = 0, n
+!
+!		t = 1.d0 * it / n
+!		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
+!		call draw_pixel(cv, color, p)
+!
+!	end do
+!
+!end subroutine draw_bezier2
 
 !===============================================================================
 
@@ -1259,30 +1277,30 @@ end subroutine draw_pixel
 
 !===============================================================================
 
-subroutine draw_line(cv, color, p1, p2)
-
-	! Draw a line segment from point p1 to p2 on canvas cv
-
-	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
-	integer(kind = 4), intent(in) :: color
-	double precision, intent(in) :: p1(ND), p2(ND)
-
-	!********
-
-	integer :: it, n
-	double precision :: p(ND)
-	double precision :: t
-
-	n = 2 * nint(maxval(abs(p2 - p1))) + 1
-	do it = 0, n
-
-		t = 1.d0 * it / n
-		p = p1 + t * (p2 - p1)
-		call draw_pixel(cv, color, p)
-
-	end do
-
-end subroutine draw_line
+!subroutine draw_line(cv, color, p1, p2)
+!
+!	! Draw a line segment from point p1 to p2 on canvas cv
+!
+!	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
+!	integer(kind = 4), intent(in) :: color
+!	double precision, intent(in) :: p1(ND), p2(ND)
+!
+!	!********
+!
+!	integer :: it, n
+!	double precision :: p(ND)
+!	double precision :: t
+!
+!	n = 2 * nint(maxval(abs(p2 - p1))) + 1
+!	do it = 0, n
+!
+!		t = 1.d0 * it / n
+!		p = p1 + t * (p2 - p1)
+!		call draw_pixel(cv, color, p)
+!
+!	end do
+!
+!end subroutine draw_line
 
 !===============================================================================
 
@@ -1718,8 +1736,6 @@ end module cali_m
 
 ! TODO:
 ! - fill-in contours instead of just outlines
-! - cmap formats:
-!   * cmap format 14, e.g. seguiemj.ttf
 ! - make a specimen() fn (and program?) that exports a specimen for a given
 !   font, maybe with some highlight words/chars as args.  unit tests could
 !   leverage this
@@ -1737,4 +1753,11 @@ end module cali_m
 ! - anti-aliasing?  doubtful
 ! - png export, OpenGL/SDL bindings?
 ! - vector output format, e.g. ps, pdf, or svg?
+! - other cmap formats?  need examples for testing.  formats 0, 4, and 6 cover
+!   almost all ~500 Windows fonts (except seguiemj.ttf in format 14) and a
+!   handful of examples for Google Open Fonts
+! - cmap format 14, e.g. seguiemj.ttf?
+!   * "This is also the only 'cmap' subtable which does not stand by itself and
+!     is not completely independent of all others; a 'cmap' may not consist of a
+!     type 14 subtable alone"
 
