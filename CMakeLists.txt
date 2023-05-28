@@ -27,6 +27,8 @@ add_compile_options("-Werror")
 add_compile_options("-fbounds-check")
 add_compile_options("-fbacktrace")
 
+#add_compile_options("-O3")
+
 #=======================================================================
 
 set(SRC_DIR "src")

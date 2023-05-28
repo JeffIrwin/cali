@@ -1078,7 +1078,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	double precision :: pix_per_unit, a(ND), b(ND), c(ND), p(ND), s
 	double precision, allocatable :: x(:,:)
 
-	integer :: it, n, ip(ND), ip0(ND), ipd(ND), ix, iy
+	integer :: it, n, ip(ND), ip0(ND), ipd(ND), ix, iy, xmin, ymin, xmax, ymax
 	integer :: wind_inc, wind_inc0, wind_incd, wind_num
 	integer, allocatable :: wind(:,:)
 	integer(kind = 2) :: flag, flagn, flagp
@@ -1131,14 +1131,22 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 			]
 
 		! Apply global transform (resolution, translation)
-		x(1,i) =  pix_per_unit * x(1,i) + x0
-		x(2,i) = -pix_per_unit * x(2,i) + y0  ! invert y for y-down img coords
+		x(1,i) =  pix_per_unit * x(1,i)
+		x(2,i) = -pix_per_unit * x(2,i)  ! invert y for y-down img coords
 
 	end do
 
+	! Transformed bounding box
+	xmin = nint(minval(x(1,:))) - 1
+	xmax = nint(maxval(x(1,:))) + 1
+	ymin = nint(minval(x(2,:))) - 1
+	ymax = nint(maxval(x(2,:))) + 1
+
 	! TODO: optimize by only allocating winding number increment markings to
 	! bounding box of current glyph component, not whole canvas
-	allocate(wind( size(cv,1), size(cv,2) ))
+	!allocate(wind( size(cv,1), size(cv,2) ))
+	allocate(wind(xmin: xmax, ymin: ymax))
+
 	wind = 0
 	ip0 = 0
 
@@ -1178,7 +1186,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					p = x(:,j) + s * (x(:,jn) - x(:,j))
 					ip = nint(p)
 					if (first .or. any(ip /= ip0)) then
-						call draw_pixel(cv, color, ip)
+						call draw_pixel(cv, color, ip + [x0,y0])
 					end if
 
 					wind_inc = sign_(ip(2) - ip0(2))
@@ -1257,7 +1265,8 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					p = (1-s)**2 * a + 2*(1-s)*s * b + s**2 * c
 					ip = nint(p)
 					if (first .or. any(ip /= ip0)) then
-						call draw_pixel(cv, color, ip)
+						!call draw_pixel(cv, color, ip)
+						call draw_pixel(cv, color, ip + [x0,y0])
 					end if
 
 					wind_inc = sign_(ip(2) - ip0(2))
@@ -1310,15 +1319,19 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	!end do
 	!end do
 
-	do iy = 1, size(cv,2)
+	!do iy = 1, size(cv,2)
+	!wind_num = 0
+	!do ix = 1, size(cv,1)
+
+	do iy = ymin, ymax
 	wind_num = 0
-	do ix = 1, size(cv,1)
+	do ix = xmin, xmax
 
 		!if (wind(ix,iy) > 0) call draw_pixel(cv, grn, [ix,iy])
 		!if (wind(ix,iy) < 0) call draw_pixel(cv, red, [ix,iy])
 
 		wind_num = wind_num + wind(ix,iy)
-		if (wind_num /= 0) call draw_pixel(cv, color, [ix,iy])
+		if (wind_num /= 0) call draw_pixel(cv, color, [ix+x0, iy+y0])
 
 	end do
 	end do
@@ -1522,18 +1535,23 @@ subroutine write_img_diff(cv1, cv2, filename)
 	!********
 	integer(kind = 4), allocatable :: cv(:,:)
 	integer(kind = 4) :: diff_color
-	integer :: ix, iy
+	integer :: ix, iy, ndiff
 
 	allocate(cv(0,0))
 	cv = cv1
 
 	diff_color = new_color(int(z'ff00ffff',8))
+	ndiff = 0
 	do iy = 1, size(cv,2)
 	do ix = 1, size(cv,1)
-		if (cv1(ix,iy) /= cv2(ix,iy)) cv(ix,iy) = diff_color
+		if (cv1(ix,iy) /= cv2(ix,iy)) then
+			cv(ix,iy) = diff_color
+			ndiff = ndiff + 1
+		end if
 	end do
 	end do
 
+	write(*,*) FG_BOLD_BRIGHT_RED//to_str(ndiff)//" pixels changed"//COLOR_RESET
 	call write_img(cv, filename)
 
 end subroutine write_img_diff
