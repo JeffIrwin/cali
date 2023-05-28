@@ -1140,6 +1140,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	! bounding box of current glyph component, not whole canvas
 	allocate(wind( size(cv,1), size(cv,2) ))
 	wind = 0
+	ip0 = 0
 
 	start_pt = 1
 	do i = 1, glyph%ncontours
@@ -1178,31 +1179,29 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					ip = nint(p)
 					if (first .or. any(ip /= ip0)) then
 						call draw_pixel(cv, color, ip)
+					end if
 
-						if (.not. first) then
+					wind_inc = sign_(ip(2) - ip0(2))
+					if (.not. first .and. wind_inc /= 0) then
 
-							! TODO: use sign() fn to DRY up separate branches
-							wind_inc = sign_(ip(2) - ip0(2))
-							if (wind_inc /= 0) then
-
-								if (wind_inc0 == 0 .and. .not. defer) then
-									defer = .true.
-									ipd = ip0
-									wind_incd = wind_inc
-								end if
-
-								!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
-								if (wind_inc0 + wind_inc == 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
-
-								! TODO: bounds-check before incrementing wind array
-
-								!call draw_pixel(cv, red, ip)
-								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
-
-								wind_inc0 = wind_inc
-
-							end if
+						if (wind_inc0 == 0 .and. .not. defer) then
+							defer = .true.
+							ipd = ip0
+							wind_incd = wind_inc
 						end if
+
+						!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
+						if (wind_inc0 + wind_inc == 0) then
+							wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
+						end if
+
+						! TODO: bounds-check before incrementing wind array
+
+						!call draw_pixel(cv, red, ip)
+						wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
+
+						wind_inc0 = wind_inc
+
 					end if
 
 					ip0 = ip
@@ -1257,35 +1256,31 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					s = 1.d0 * it / n
 					p = (1-s)**2 * a + 2*(1-s)*s * b + s**2 * c
 					ip = nint(p)
-					!call draw_pixel(cv, color, ip)
-
 					if (first .or. any(ip /= ip0)) then
 						call draw_pixel(cv, color, ip)
+					end if
 
-						if (.not. first) then
+					wind_inc = sign_(ip(2) - ip0(2))
+					if (.not. first .and. wind_inc /= 0) then
 
-							! TODO: use sign() fn to DRY up separate branches
-							wind_inc = sign_(ip(2) - ip0(2))
-							if (wind_inc /= 0) then
-
-								if (wind_inc0 == 0 .and. .not. defer) then
-									defer = .true.
-									ipd = ip0
-									wind_incd = wind_inc
-								end if
-
-								!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
-								if (wind_inc0 + wind_inc == 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
-
-								! TODO: bounds-check before incrementing wind array
-
-								!call draw_pixel(cv, red, ip)
-								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
-
-								wind_inc0 = wind_inc
-
-							end if
+						if (wind_inc0 == 0 .and. .not. defer) then
+							defer = .true.
+							ipd = ip0
+							wind_incd = wind_inc
 						end if
+
+						!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
+						if (wind_inc0 + wind_inc == 0) then
+							wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
+						end if
+
+						! TODO: bounds-check before incrementing wind array
+
+						!call draw_pixel(cv, red, ip)
+						wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
+
+						wind_inc0 = wind_inc
+
 					end if
 
 					ip0 = ip
