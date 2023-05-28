@@ -65,5 +65,15 @@ set(TEST_SRC
 add_executable("${TEST_EXE}" ${TEST_SRC})
 target_link_libraries(${TEST_EXE} ${LINK_LIBS})
 
+#********
+
+set(DEMO_EXE "demo")
+set(DEMO_SRC
+	${SRC_DIR}/demo.f90
+	)
+
+add_executable("${DEMO_EXE}" ${DEMO_SRC})
+target_link_libraries(${DEMO_EXE} ${LINK_LIBS})
+
 #=======================================================================
 

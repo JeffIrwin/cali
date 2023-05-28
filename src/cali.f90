@@ -1847,7 +1847,7 @@ subroutine specimen(ttf_filename)
 	str = "Q"
 	call draw_str(cv, fg2, ttf, str, 450*factor, nint(4.5 * line_height), 5 * pix_per_em)
 
-	str = "Big chungus"
+	str = "Calligraphy"
 	call draw_str(cv, fg3, ttf, str, 150*factor, 6 * line_height, pix_per_em)
 
 	! TODO: increase spacing for remaining strs.  need extra arg for draw_str.
