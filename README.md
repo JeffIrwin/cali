@@ -127,3 +127,4 @@ Freya Holmér's video on splines: https://www.youtube.com/watch?v=jvPPXbo87ds
 
 UTF-8 transcoding: https://rosettacode.org/wiki/UTF-8_encode_and_decode
 
+Tsoding's [olivec graphics library](https://github.com/tsoding/olive.c/) demos, which partially inspired the architecture for this library:  https://tsoding.github.io/olive.c/
