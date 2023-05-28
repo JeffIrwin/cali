@@ -118,6 +118,54 @@ end subroutine weis
 
 !===============================================================================
 
+subroutine pet_sounds()
+
+	implicit none
+
+	double precision :: pixels_per_em
+
+	integer(kind = 4) :: fg, fg2, bg, f, tmargin
+	integer(kind = 4), allocatable :: canvas(:,:)
+
+	type(ttf_t)  :: ttf
+
+	ttf  = read_ttf("/mnt/c/Windows/Fonts/COOPBL.TTF")
+
+	! foreground/background colors
+	fg  = new_color(int(z"fed84aff",8))
+	fg2 = new_color(int(z"ffffffff",8))
+	bg  = new_color(int(z"3d8351ff",8))
+
+	! Scaling factor
+	f = 3
+
+	tmargin = 0
+	tmargin = -25*f
+
+	canvas = new_canvas(550*f, 420*f, bg)
+
+	pixels_per_em = 120.d0 * f
+
+	! TODO: the album cover uses a tighter tracking, but I don't have an option
+	! to adjust that (yet)
+
+	call draw_str(canvas, fg , ttf , "The"   , 130*f, 150*f + tmargin, pixels_per_em)
+	call draw_str(canvas, fg , ttf , "Beach" ,  72*f, 232*f + tmargin, pixels_per_em)
+	call draw_str(canvas, fg , ttf , "Boys"  ,  16*f, 315*f + tmargin, pixels_per_em)
+
+	! TODO: remove pad to adjust for looser tracking
+	call draw_str(canvas, fg2, ttf , "Pet"   , 291*f + 35*f, 315*f + tmargin, pixels_per_em)
+
+	call draw_str(canvas, fg2, ttf , "Sounds",  59*f       , 402*f + tmargin, pixels_per_em)
+
+	call write_img(canvas, "doc/pet-sounds.ppm")
+	call system("magick.exe doc/pet-sounds.ppm doc/pet-sounds.png")
+	call delete_file("doc/pet-sounds.ppm")
+
+end subroutine pet_sounds
+
+!===============================================================================
+
 end module demo_m
 
 !===============================================================================
@@ -131,6 +179,7 @@ program main
 	write(*,*) "starting cali demo suite ..."
 	write(*,*)
 
+	call pet_sounds()
 	call weis()
 	call foo_bar_baz()
 	call kalli()
