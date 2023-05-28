@@ -2,7 +2,8 @@
 !===============================================================================
 
 ! These demos use Windows fonts which are not licensed for distribution, so I
-! can't include them in tests that run on github
+! can't include them in tests that run on github, or things with
+! high-resolutions that make large files
 
 module demo_m
 
@@ -15,7 +16,7 @@ contains
 
 !===============================================================================
 
-subroutine foo_bar_baz
+subroutine foo_bar_baz()
 
 	implicit none
 
@@ -55,6 +56,37 @@ end subroutine foo_bar_baz
 
 !===============================================================================
 
+subroutine kalli()
+
+	implicit none
+
+	double precision :: pixels_per_em
+
+	integer(kind = 4) :: fg, bg
+	integer(kind = 4), allocatable :: canvas(:,:)
+
+	type(ttf_t)  :: ttf
+
+	ttf  = read_ttf('./fonts/computer-modern/cmunrm.ttf')  ! roman
+
+	! foreground/background colors
+	fg  = new_color(int(z'66ddaaff',8))
+	bg  = new_color(int(z'202020ff',8))
+
+	canvas = new_canvas(5322, 1746, bg)
+
+	pixels_per_em = 2000.d0
+
+	call draw_str(canvas, fg , ttf , "Καλλι", 100, 1600, pixels_per_em)
+
+	call write_img(canvas, "doc/kalli.ppm")
+	call system("magick.exe doc/kalli.ppm doc/kalli.png")
+	call delete_file("doc/kalli.ppm")
+
+end subroutine kalli
+
+!===============================================================================
+
 end module demo_m
 
 !===============================================================================
@@ -69,6 +101,7 @@ program main
 	write(*,*)
 
 	call foo_bar_baz()
+	call kalli()
 
 	write(*,*) FG_BRIGHT_GREEN//"success!"//COLOR_RESET
 	write(*,*) repeat("=", 50)
