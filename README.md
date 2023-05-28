@@ -1,3 +1,4 @@
+![](https://github.com/JeffIrwin/cali/workflows/CI/badge.svg)
 
 # cali
 
