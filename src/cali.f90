@@ -1079,17 +1079,17 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	double precision, allocatable :: x(:,:)
 
 	integer :: it, n, ip(ND), ip0(ND), ipd(ND), ix, iy
-	integer :: wind_inc0, wind_incd, wind_num
+	integer :: wind_inc, wind_inc0, wind_incd, wind_num
 	integer, allocatable :: wind(:,:)
 	integer(kind = 2) :: flag, flagn, flagp
 	integer(kind = 8) :: i, j, start_pt, jp, jn
 
 	logical :: first, defer
 
-	! TODO: debugging only
-	integer(kind = 4) :: red, grn
-	red = new_color(int(z'ff0000ff',8))
-	grn = new_color(int(z'00ff00ff',8))
+	!! TODO: debugging only
+	!integer(kind = 4) :: red, grn
+	!red = new_color(int(z'ff0000ff',8))
+	!grn = new_color(int(z'00ff00ff',8))
 
 	if (glyph%ncontours < 0) then
 		!write(*,*) ERROR//'compound glyphs are not supported'
@@ -1182,39 +1182,24 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 						if (.not. first) then
 
 							! TODO: use sign() fn to DRY up separate branches
-							if (ip(2) > ip0(2)) then
+							wind_inc = sign_(ip(2) - ip0(2))
+							if (wind_inc /= 0) then
 
 								if (wind_inc0 == 0 .and. .not. defer) then
 									defer = .true.
 									ipd = ip0
-									wind_incd = -1
+									wind_incd = wind_inc
 								end if
 
 								!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
-								if (wind_inc0 > 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) - 1
+								if (wind_inc0 + wind_inc == 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
+
 								! TODO: bounds-check before incrementing wind array
 
 								!call draw_pixel(cv, red, ip)
-								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) - 1
+								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
 
-								wind_inc0 = -1
-
-							else if (ip(2) < ip0(2)) then
-
-								if (wind_inc0 == 0 .and. .not. defer) then
-								!if (.not. defer) then
-									defer = .true.
-									ipd = ip0
-									wind_incd = +1
-								end if
-
-								!if (wind_inc0 < 0) call draw_pixel(cv, grn, ip0)
-								if (wind_inc0 < 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + 1
-
-								!call draw_pixel(cv, grn, ip)
-								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + 1
-
-								wind_inc0 = +1
+								wind_inc0 = wind_inc
 
 							end if
 						end if
@@ -1273,45 +1258,31 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					p = (1-s)**2 * a + 2*(1-s)*s * b + s**2 * c
 					ip = nint(p)
 					!call draw_pixel(cv, color, ip)
+
 					if (first .or. any(ip /= ip0)) then
 						call draw_pixel(cv, color, ip)
 
 						if (.not. first) then
 
 							! TODO: use sign() fn to DRY up separate branches
-							if (ip(2) > ip0(2)) then
+							wind_inc = sign_(ip(2) - ip0(2))
+							if (wind_inc /= 0) then
 
 								if (wind_inc0 == 0 .and. .not. defer) then
 									defer = .true.
 									ipd = ip0
-									wind_incd = -1
+									wind_incd = wind_inc
 								end if
 
 								!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
-								if (wind_inc0 > 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) - 1
+								if (wind_inc0 + wind_inc == 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
+
 								! TODO: bounds-check before incrementing wind array
 
 								!call draw_pixel(cv, red, ip)
-								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) - 1
+								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
 
-								wind_inc0 = -1
-
-							else if (ip(2) < ip0(2)) then
-
-								if (wind_inc0 == 0 .and. .not. defer) then
-								!if (.not. defer) then
-									defer = .true.
-									ipd = ip0
-									wind_incd = +1
-								end if
-
-								!if (wind_inc0 < 0) call draw_pixel(cv, grn, ip0)
-								if (wind_inc0 < 0) wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + 1
-
-								!call draw_pixel(cv, grn, ip)
-								wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + 1
-
-								wind_inc0 = +1
+								wind_inc0 = wind_inc
 
 							end if
 						end if
@@ -1358,6 +1329,23 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	end do
 
 end subroutine draw_glyph
+
+!===============================================================================
+
+integer function sign_(x)
+
+	! -1, 0, or +1
+
+	integer, intent(in) :: x
+
+	if (x == 0) then
+		sign_ = 0
+		return
+	end if
+
+	sign_ = sign(1, x)
+
+end function sign_
 
 !===============================================================================
 
