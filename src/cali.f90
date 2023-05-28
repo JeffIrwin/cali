@@ -1875,14 +1875,6 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
-! - fill-in contours instead of just outlines
-!   * mvp done
-!   * could use some optimization
-! - make a separate demo.exe like test.exe but for Windows fonts that can't be
-!   distributed
-! - make a specimen() fn (and program?) that exports a specimen for a given
-!   font, maybe with some highlight words/chars as args.  unit tests could
-!   leverage this
 ! - other config args?  json input for app only
 !   * img size
 !   * fg, bg colors

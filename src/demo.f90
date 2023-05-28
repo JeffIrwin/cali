@@ -28,13 +28,13 @@ subroutine foo_bar_baz()
 
 	type(ttf_t)  :: ttf, ttfi
 
-	ttf  = read_ttf('./fonts/computer-modern/cmunrm.ttf')  ! roman
-	ttfi = read_ttf('./fonts/computer-modern/cmunti.ttf')  ! italic
+	ttf  = read_ttf("./fonts/computer-modern/cmunrm.ttf")  ! roman
+	ttfi = read_ttf("./fonts/computer-modern/cmunti.ttf")  ! italic
 
 	! foreground/background colors
-	fg  = new_color(int(z'000000ff',8))
-	fg2 = new_color(int(z'2a7fffff',8))
-	bg  = new_color(int(z'e8e6cbff',8))
+	fg  = new_color(int(z"000000ff",8))
+	fg2 = new_color(int(z"2a7fffff",8))
+	bg  = new_color(int(z"e8e6cbff",8))
 
 	canvas = new_canvas(2000, 1000, bg)
 
@@ -67,11 +67,11 @@ subroutine kalli()
 
 	type(ttf_t)  :: ttf
 
-	ttf  = read_ttf('./fonts/computer-modern/cmunrm.ttf')  ! roman
+	ttf  = read_ttf("./fonts/computer-modern/cmunrm.ttf")  ! roman
 
 	! foreground/background colors
-	fg  = new_color(int(z'66ddaaff',8))
-	bg  = new_color(int(z'202020ff',8))
+	fg  = new_color(int(z"66ddaaff",8))
+	bg  = new_color(int(z"202020ff",8))
 
 	canvas = new_canvas(5322, 1746, bg)
 
@@ -84,6 +84,37 @@ subroutine kalli()
 	call delete_file("doc/kalli.ppm")
 
 end subroutine kalli
+
+!===============================================================================
+
+subroutine weis()
+
+	implicit none
+
+	double precision :: pixels_per_em
+
+	integer(kind = 4) :: fg, bg
+	integer(kind = 4), allocatable :: canvas(:,:)
+
+	type(ttf_t)  :: ttf
+
+	ttf  = read_ttf("/mnt/c/Windows/Fonts/COOPBL.TTF")
+
+	! foreground/background colors
+	fg  = new_color(int(z"ffffffff",8))
+	bg  = new_color(int(z"ed1b24ff",8))
+
+	canvas = new_canvas(800, 250, bg)
+
+	pixels_per_em = 300.d0
+
+	call draw_str(canvas, fg , ttf , "weis", 40, 225, pixels_per_em)
+
+	call write_img(canvas, "doc/weis.ppm")
+	call system("magick.exe doc/weis.ppm doc/weis.png")
+	call delete_file("doc/weis.ppm")
+
+end subroutine weis
 
 !===============================================================================
 
@@ -100,6 +131,7 @@ program main
 	write(*,*) "starting cali demo suite ..."
 	write(*,*)
 
+	call weis()
 	call foo_bar_baz()
 	call kalli()
 
