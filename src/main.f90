@@ -22,17 +22,10 @@ module app_m
 	type args_t
 		character(len = :), allocatable :: ttf_file
 		logical :: waterfall = .false.
-		integer :: language
+		character(len = :), allocatable :: language
 	end type args_t
 
 contains
-
-!===============================================================================
-
-!function get_lang(char_code_iso_619_1) result(code)
-!	character(len = *), intent(in) :: char_code_iso_619_1
-!	integer :: code
-!end function get_lang
 
 !===============================================================================
 
@@ -49,11 +42,16 @@ function parse_args() result(args)
 
 	logical :: lerror = .false.
 
+	! Defaults
+	args%language = "en"
+
 	argc = command_argument_count()
 	!print *, "argc = ", argc
 
+	i = 0
 	ipos = 0
-	do i = 1, argc
+	do while (i < argc)
+		i = i + 1
 
 		call get_command_argument(i, buffer, status = io)
 		if (io /= EXIT_SUCCESS) then
@@ -64,6 +62,18 @@ function parse_args() result(args)
 		!print *, "argv = ", argv
 
 		select case (argv)
+		case ("-l", "--language")
+			! TODO: fn.  helpful error if i > argc
+			i = i + 1
+			call get_command_argument(i, buffer, status = io)
+			if (io /= EXIT_SUCCESS) then
+				write(*,*) ERROR//"cannot get cmd arg"
+				call exit(EXIT_FAILURE)
+			end if
+
+			args%language = trim(buffer)
+			! TODO: check language is in langs
+
 		case ("-w", "--waterfall")
 			args%waterfall = .true.
 
@@ -89,11 +99,11 @@ function parse_args() result(args)
 
 	if (lerror) then
 		write(*,*) "Usage:"
-		write(*,*) "	cali <path/to/font.ttf>"
-		write(*,*) "	cali -w <path/to/font.ttf>"
+		write(*,*) "	cali <path/to/font.ttf> [-l <lang>] [-w]"
 		write(*,*)
 		write(*,*) "Options:"
-		write(*,*) "	-w --waterfall  waterfall specimen"
+		write(*,*) "	-l --language <lang>  language code ISO 639-1"
+		write(*,*) "	-w --waterfall        waterfall specimen"
 		write(*,*)
 		call exit(EXIT_FAILURE)
 	end if
@@ -124,8 +134,9 @@ program main
 	args = parse_args()
 
 	if (args%waterfall) then
-		call waterfall(args%ttf_file, 12.d0, 64.d0, 8)
+		call waterfall(args%ttf_file, 12.d0, 64.d0, 8, args%language)
 	else
+		! TODO: lang arg
 		call specimen(args%ttf_file)
 	end if
 

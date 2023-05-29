@@ -1776,7 +1776,7 @@ end subroutine specimen
 
 !===============================================================================
 
-subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe)
+subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 
 	! Make a "waterfall" specimen of the same text in multiple sizes for the
 	! given ttf file.  I guess I got this term from fontdrop.info
@@ -1784,6 +1784,7 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe)
 	character(len = *), intent(in) :: ttf_filename
 	double precision, intent(in) :: ppe_min, ppe_max
 	integer, intent(in) :: nppe
+	character(len = *), intent(in) :: language
 
 	!********
 
@@ -1814,21 +1815,43 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe)
 
 	lmargin = 15*f
 
+	! Pangrams are from https://clagnut.com/blog/2380
+
 	y = 20*f
 	do i = 1, nppe
 		pix_per_em = f * (ppe_min + (ppe_max - ppe_min) * (i - 1) / (nppe - 1))
 
-		y = y + nint(1.3 * pix_per_em)
-		call draw_str(cv, fg, ttf, "judge my vow", f*lmargin   , y, pix_per_em)
-		call draw_str(cv, fg, ttf, "JUDGE MY VOW", size(cv,1)/2, y, pix_per_em)
+		select case (language)
+		case ("en")
 
-		y = y + nint(1.1 * pix_per_em)
-		call draw_str(cv, fg, ttf, "sphinx of"   , f*lmargin   , y, pix_per_em)
-		call draw_str(cv, fg, ttf, "SPHINX OF"   , size(cv,1)/2, y, pix_per_em)
+			y = y + nint(1.3 * pix_per_em)
+			call draw_str(cv, fg, ttf, "judge my vow,", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "JUDGE MY VOW,", size(cv,1)/2, y, pix_per_em)
 
-		y = y + nint(1.1 * pix_per_em)
-		call draw_str(cv, fg, ttf, "black quartz", f*lmargin   , y, pix_per_em)
-		call draw_str(cv, fg, ttf, "BLACK QUARTZ", size(cv,1)/2, y, pix_per_em)
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "sphinx of"   , f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "SPHINX OF"   , size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "black quartz!", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "BLACK QUARTZ!", size(cv,1)/2, y, pix_per_em)
+
+		case ("ru")
+			! Would a citrus live in the thickets of the south? Yes, but only a fake one!
+
+			y = y + nint(1.3 * pix_per_em)
+			call draw_str(cv, fg, ttf, "в чащах юга жил бы", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "В ЧАЩАХ ЮГА ЖИЛ БЫ", size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "цитрус? да, но"   , f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ЦИТРУС? ДА, НО"   , size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "фальшивый экземпляр!", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ФАЛЬШИВЫЙ ЭКЗЕМПЛЯР!", size(cv,1)/2, y, pix_per_em)
+
+		end select
 
 	end do
 
