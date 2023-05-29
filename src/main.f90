@@ -62,6 +62,8 @@ function parse_args() result(args)
 		argv = trim(buffer)
 		!print *, "argv = ", argv
 
+		! TODO: help, version args
+
 		select case (argv)
 		case ("-l", "--language")
 			! TODO: fn.  helpful error if i > argc

@@ -1810,18 +1810,55 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 
 	allocate(cv(0,0))
 
-	f = 5
+	f = 1
 	cv = new_canvas(1400*f, 1200*f, bg)
 
 	lmargin = 15*f
 
 	! Pangrams are from https://clagnut.com/blog/2380
 
+	! TODO: refactor to set upper/lower lines per-language, and then do
+	! typesetting unconditionally on array of lines
+
 	y = 20*f
 	do i = 1, nppe
 		pix_per_em = f * (ppe_min + (ppe_max - ppe_min) * (i - 1) / (nppe - 1))
 
 		select case (language)
+
+		case ("fr")
+			! Voyez le brick géant que j’examine près du wharf
+			!
+			! See the giant brig which I examine near the wharf
+
+			y = y + nint(1.3 * pix_per_em)
+			call draw_str(cv, fg, ttf, "voyez le brick", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "VOYEZ LE BRICK", size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "géant que j’examine"    , f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "GÉANT QUE J’EXAMINE"    , size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "près du wharf", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "PRÈS DU WHARF", size(cv,1)/2, y, pix_per_em)
+
+
+		case ("de")
+			! Victor chases twelve boxers across the great dam of Sylt
+
+			y = y + nint(1.3 * pix_per_em)
+			call draw_str(cv, fg, ttf, "victor jagt zwölf", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "VICTOR JAGT ZWÖLF", size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "boxkämpfer quer über"    , f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "BOXKÄMPFER QUER ÜBER"    , size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "den großen sylter deich", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "DEN GROSSEN SYLTER DEICH", size(cv,1)/2, y, pix_per_em)
+
 		case ("el")
 
 			! protect in general your life from deep psychological wounds
@@ -1838,21 +1875,6 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			y = y + nint(1.1 * pix_per_em)
 			call draw_str(cv, fg, ttf, "ψυχικά τραύματα", f*lmargin   , y, pix_per_em)
 			call draw_str(cv, fg, ttf, "ΨΥΧΙΚΆ ΤΡΑΎΜΑΤΑ", size(cv,1)/2, y, pix_per_em)
-
-		case ("en")
-			! TODO: default case
-
-			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "judge my vow,", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "JUDGE MY VOW,", size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "sphinx of"    , f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "SPHINX OF"    , size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "black quartz!", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "BLACK QUARTZ!", size(cv,1)/2, y, pix_per_em)
 
 		case ("hi")
 			! Hindi does not have uppercase as far as I know
@@ -1891,6 +1913,20 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			y = y + nint(1.1 * pix_per_em)
 			call draw_str(cv, fg, ttf, "фальшивый экземпляр!", f*lmargin   , y, pix_per_em)
 			call draw_str(cv, fg, ttf, "ФАЛЬШИВЫЙ ЭКЗЕМПЛЯР!", size(cv,1)/2, y, pix_per_em)
+
+		case default  ! ("en")
+
+			y = y + nint(1.3 * pix_per_em)
+			call draw_str(cv, fg, ttf, "judge my vow,", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "JUDGE MY VOW,", size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "sphinx of"    , f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "SPHINX OF"    , size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "black quartz!", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "BLACK QUARTZ!", size(cv,1)/2, y, pix_per_em)
 
 		end select
 
