@@ -1811,7 +1811,7 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 	allocate(cv(0,0))
 
 	f = 1
-	cv = new_canvas(1100*f, 1200*f, bg)
+	cv = new_canvas(1800*f, 1200*f, bg)
 
 	lmargin = 15*f
 
@@ -1822,11 +1822,29 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 		pix_per_em = f * (ppe_min + (ppe_max - ppe_min) * (i - 1) / (nppe - 1))
 
 		select case (language)
-		case ("en")
+		case ("el")
+
+			! protect in general your life from deep psychological wounds
+			! διαφυλάξτε γενικά τη ζωή σας από βαθειά ψυχικά τραύματα
 
 			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "judge my vow,", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "JUDGE MY VOW,", size(cv,1)/2, y, pix_per_em)
+			call draw_str(cv, fg, ttf, "διαφυλάξτε γενικά τη", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ΔΙΑΦΥΛΆΞΤΕ ΓΕΝΙΚΆ ΤΗ", size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "ζωή σας από βαθειά"   , f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ΖΩΉ ΣΑΣ ΑΠΌ ΒΑΘΕΙΆ"   , size(cv,1)/2, y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, "ψυχικά τραύματα", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ΨΥΧΙΚΆ ΤΡΑΎΜΑΤΑ", size(cv,1)/2, y, pix_per_em)
+
+		case ("en")
+			! TODO: default case
+
+			y = y + nint(1.3 * pix_per_em)
+			call draw_str(cv, fg, ttf, "", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "", size(cv,1)/2, y, pix_per_em)
 
 			y = y + nint(1.1 * pix_per_em)
 			call draw_str(cv, fg, ttf, "sphinx of"   , f*lmargin   , y, pix_per_em)
