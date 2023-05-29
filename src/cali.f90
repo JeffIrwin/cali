@@ -1060,7 +1060,7 @@ end subroutine draw_str
 
 subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
-	! Draw a glyph translated horizontally by x0
+	! Draw a glyph translated horizontally by x0 and vertically by y0
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
@@ -1092,10 +1092,8 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	!grn = new_color(int(z'00ff00ff',8))
 
 	if (glyph%ncontours < 0) then
-		!write(*,*) ERROR//'compound glyphs are not supported'
-		!call exit(EXIT_FAILURE)
+		!print *, 'drawing '//to_str(glyph%ncomps)//' components ...'
 
-		print *, 'drawing '//to_str(glyph%ncomps)//' components ...'
 		do i = 1, glyph%ncomps
 			call draw_glyph(cv, color, ttf, &
 				ttf%glyphs( glyph%comps(i)%index_ ), x0, y0, pix_per_em, &
@@ -1113,10 +1111,6 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
 	! Convert from font units to pixels
 	pix_per_unit = pix_per_em / ttf%units_per_em
-
-	! TODO: render onto a subcanvas with a local origin at x == 0, then
-	! translate and blend that into the global canvas to avoid resolution
-	! issues at high x0.  Or just shift args for draw_line/draw_bezier2 calls
 
 	!x = glyph%x
 	allocate(x( size(glyph%x,1), size(glyph%x,2)))
@@ -1142,11 +1136,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 	ymin = nint(minval(x(2,:))) - 1
 	ymax = nint(maxval(x(2,:))) + 1
 
-	! TODO: optimize by only allocating winding number increment markings to
-	! bounding box of current glyph component, not whole canvas
-	!allocate(wind( size(cv,1), size(cv,2) ))
 	allocate(wind(xmin: xmax, ymin: ymax))
-
 	wind = 0
 	ip0 = 0
 
@@ -1173,11 +1163,7 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 			if (iand(flag , ON_CURVE) /= 0 .and. &
 			    iand(flagn, ON_CURVE) /= 0) then
 
-				! This is where nint() rounding should happen, AND THEN
-				! translate by x0, y0 ints.  Similarly with Bezier curves below,
-				! with points a, b, and c being doubles until final
-				! draw_bezier2() call
-				!call draw_line(cv, color, x(:,j), x(:,jn))
+				! Current and next points are on curve.  Draw a line segment.
 
 				n = 2 * nint(maxval(abs(x(:,jn) - x(:,j)))) + 1
 				do it = 0, n
@@ -1198,16 +1184,11 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 							wind_incd = wind_inc
 						end if
 
-						!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
 						if (wind_inc0 + wind_inc == 0) then
 							wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
 						end if
 
-						! TODO: bounds-check before incrementing wind array
-
-						!call draw_pixel(cv, red, ip)
 						wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
-
 						wind_inc0 = wind_inc
 
 					end if
@@ -1257,7 +1238,6 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					c = 0.5d0 * (x(:,j) + x(:,jn))
 				end if
 
-				!call draw_bezier2(cv, color, a, b, c)
 				n = 2 * nint(norm2(dble(b - a)) + norm2(dble(c - b))) + 1
 				do it = 0, n
 
@@ -1265,7 +1245,6 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 					p = (1-s)**2 * a + 2*(1-s)*s * b + s**2 * c
 					ip = nint(p)
 					if (first .or. any(ip /= ip0)) then
-						!call draw_pixel(cv, color, ip)
 						call draw_pixel(cv, color, ip + [x0,y0])
 					end if
 
@@ -1278,16 +1257,11 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 							wind_incd = wind_inc
 						end if
 
-						!if (wind_inc0 > 0) call draw_pixel(cv, red, ip0)
 						if (wind_inc0 + wind_inc == 0) then
 							wind(ip0(1), ip0(2)) = wind(ip0(1), ip0(2)) + wind_inc
 						end if
 
-						! TODO: bounds-check before incrementing wind array
-
-						!call draw_pixel(cv, red, ip)
 						wind(ip(1), ip(2)) = wind(ip(1), ip(2)) + wind_inc
-
 						wind_inc0 = wind_inc
 
 					end if
@@ -1312,24 +1286,19 @@ subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 		start_pt = glyph%end_pts(i) + 2
 	end do
 
-	!do iy = 1, size(cv,2)
-	!do ix = 1, size(cv,1)
-	!	if (wind(ix,iy) > 0) call draw_pixel(cv, grn, [ix,iy])
-	!	if (wind(ix,iy) < 0) call draw_pixel(cv, red, [ix,iy])
-	!end do
-	!end do
-
-	!do iy = 1, size(cv,2)
-	!wind_num = 0
-	!do ix = 1, size(cv,1)
-
+	! TODO: this could be optimized by cropping the glyph loop within the canvas
+	! bounds and not checking bounds within draw_pixel().  y is trivial, but x
+	! still needs to count winding number starting from xmin.  still need a
+	! safe bound-checking version of draw_pixel() for the outlines above
 	do iy = ymin, ymax
 	wind_num = 0
 	do ix = xmin, xmax
 
+		!! Visualize entry/exit points for debugging
 		!if (wind(ix,iy) > 0) call draw_pixel(cv, grn, [ix,iy])
 		!if (wind(ix,iy) < 0) call draw_pixel(cv, red, [ix,iy])
 
+		! Fill contours
 		wind_num = wind_num + wind(ix,iy)
 		if (wind_num /= 0) call draw_pixel(cv, color, [ix+x0, iy+y0])
 
@@ -1357,47 +1326,11 @@ end function sign_
 
 !===============================================================================
 
-!subroutine draw_bezier2(cv, color, p1, p2, p3)
-!
-!	! Draw a quadratic Bezier curve from start point p1 to end point p3 with
-!	! middle off-curve control point p2 on canvas cv
-!
-!	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
-!	integer(kind = 4), intent(in) :: color
-!	double precision, intent(in) :: p1(ND), p2(ND), p3(ND)
-!
-!	!********
-!
-!	double precision :: t
-!
-!	integer :: it, n
-!	!integer(kind = 8) :: p(ND)
-!	double precision :: p(ND)
-!
-!	n = 2 * nint(norm2(dble(p2 - p1)) + norm2(dble(p3 - p2))) + 1
-!	do it = 0, n
-!
-!		t = 1.d0 * it / n
-!		p = (1-t)**2 * p1 + 2*(1-t)*t * p2 + t**2 * p3
-!		call draw_pixel(cv, color, p)
-!
-!	end do
-!
-!end subroutine draw_bezier2
-
-!===============================================================================
-
 subroutine draw_pixel(cv, color, ip)
 
 	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
 	integer(kind = 4), intent(in) :: color
-	!integer(kind = 8), intent(in) :: p(ND)
-	!double precision, intent(in) :: p(ND)
 	integer, intent(in) :: ip(ND)
-	!********
-
-	!ip(1) = nint(p(1))
-	!ip(2) = nint(p(2))
 
 	! Check bounds.  TODO: set a flag to log *one* warning (not a warning
 	! per-pixel)
@@ -1409,33 +1342,6 @@ subroutine draw_pixel(cv, color, ip)
 	end if
 
 end subroutine draw_pixel
-
-!===============================================================================
-
-!subroutine draw_line(cv, color, p1, p2)
-!
-!	! Draw a line segment from point p1 to p2 on canvas cv
-!
-!	integer(kind = 4), allocatable, intent(inout) :: cv(:,:)
-!	integer(kind = 4), intent(in) :: color
-!	double precision, intent(in) :: p1(ND), p2(ND)
-!
-!	!********
-!
-!	integer :: it, n
-!	double precision :: p(ND)
-!	double precision :: t
-!
-!	n = 2 * nint(maxval(abs(p2 - p1))) + 1
-!	do it = 0, n
-!
-!		t = 1.d0 * it / n
-!		p = p1 + t * (p2 - p1)
-!		call draw_pixel(cv, color, p)
-!
-!	end do
-!
-!end subroutine draw_line
 
 !===============================================================================
 
@@ -1875,16 +1781,18 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
+! - horizontal spacing
+!   * letter-spacing (tracking) style arg: update pet sounds demo
+!   * more advanced kerning using the 'kern' table
+!   * advanceWidth from 'hmtx' table done
+! - waterfall test
 ! - other config args?  json input for app only
+!   * cmd arg for specimen vs markdown render vs waterfall etc.
 !   * img size
 !   * fg, bg colors
 !   * font filename
 !   * text filename (or directly as a string)
 !   * resolution / font size
-! - horizontal spacing
-!   * letter-spacing (tracking) style arg
-!   * more advanced kerning using the 'kern' table
-!   * advanceWidth from 'hmtx' table done
 ! - ligatures
 ! - anti-aliasing?  doubtful
 ! - png export, OpenGL/SDL bindings?
