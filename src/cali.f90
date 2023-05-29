@@ -1776,6 +1776,70 @@ end subroutine specimen
 
 !===============================================================================
 
+subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe)
+
+	! Make a "waterfall" specimen of the same text in multiple sizes for the
+	! given ttf file.  I guess I got this term from fontdrop.info
+
+	character(len = *), intent(in) :: ttf_filename
+	double precision, intent(in) :: ppe_min, ppe_max
+	integer, intent(in) :: nppe
+
+	!********
+
+	character(len = :), allocatable :: ppm_filename
+
+	double precision :: pix_per_em
+
+	integer :: i, lmargin, f, seed, y
+	integer(kind = 4) :: fg, bg
+	integer(kind = 4), allocatable :: cv(:,:)
+
+	type(ttf_t)  :: ttf
+
+	ttf  = read_ttf(ttf_filename)
+
+	! Seed RNG with checksum adjustment
+	seed = int(ttf%checksum_adj, 4)
+	call srand(seed)
+
+	! foreground/background colors
+	fg = rand_light()
+	bg = rand_dark()
+
+	allocate(cv(0,0))
+
+	f = 5
+	cv = new_canvas(1100*f, 1200*f, bg)
+
+	pix_per_em = 75.d0*f
+	lmargin = 10*f
+
+	y = 0
+	do i = 1, nppe
+		pix_per_em = f * (ppe_min + (ppe_max - ppe_min) * (i - 1) / (nppe - 1))
+
+		y = y + nint(1.3 * pix_per_em)
+		call draw_str(cv, fg, ttf, "judge my vow", f*lmargin   , y, pix_per_em)
+		call draw_str(cv, fg, ttf, "JUDGE MY VOW", size(cv,1)/2, y, pix_per_em)
+
+		y = y + nint(1.1 * pix_per_em)
+		call draw_str(cv, fg, ttf, "sphinx of"   , f*lmargin   , y, pix_per_em)
+		call draw_str(cv, fg, ttf, "SPHINX OF"   , size(cv,1)/2, y, pix_per_em)
+
+		y = y + nint(1.1 * pix_per_em)
+		call draw_str(cv, fg, ttf, "black quartz", f*lmargin   , y, pix_per_em)
+		call draw_str(cv, fg, ttf, "BLACK QUARTZ", size(cv,1)/2, y, pix_per_em)
+
+	end do
+
+	ppm_filename = "./build/waterfall-"//basename(ttf_filename)//".ppm"
+	call write_img(cv, ppm_filename)
+
+end subroutine waterfall
+
+!===============================================================================
+
 end module cali_m
 
 !===============================================================================
