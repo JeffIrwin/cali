@@ -15,6 +15,7 @@ module app_m
 			"el", &  ! greek
 			"en", &  ! english
 			"fr", &  ! french
+			"hi", &  ! hindi
 			"ru", &  ! russian
 			"zu"  &  ! zulu
 		]

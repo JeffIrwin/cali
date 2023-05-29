@@ -1810,8 +1810,8 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 
 	allocate(cv(0,0))
 
-	f = 1
-	cv = new_canvas(1800*f, 1200*f, bg)
+	f = 5
+	cv = new_canvas(1400*f, 1200*f, bg)
 
 	lmargin = 15*f
 
@@ -1832,8 +1832,8 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			call draw_str(cv, fg, ttf, "ΔΙΑΦΥΛΆΞΤΕ ΓΕΝΙΚΆ ΤΗ", size(cv,1)/2, y, pix_per_em)
 
 			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "ζωή σας από βαθειά"   , f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "ΖΩΉ ΣΑΣ ΑΠΌ ΒΑΘΕΙΆ"   , size(cv,1)/2, y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ζωή σας από βαθειά", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ΖΩΉ ΣΑΣ ΑΠΌ ΒΑΘΕΙΆ", size(cv,1)/2, y, pix_per_em)
 
 			y = y + nint(1.1 * pix_per_em)
 			call draw_str(cv, fg, ttf, "ψυχικά τραύματα", f*lmargin   , y, pix_per_em)
@@ -1843,16 +1843,39 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			! TODO: default case
 
 			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "", size(cv,1)/2, y, pix_per_em)
+			call draw_str(cv, fg, ttf, "judge my vow,", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "JUDGE MY VOW,", size(cv,1)/2, y, pix_per_em)
 
 			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "sphinx of"   , f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "SPHINX OF"   , size(cv,1)/2, y, pix_per_em)
+			call draw_str(cv, fg, ttf, "sphinx of"    , f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "SPHINX OF"    , size(cv,1)/2, y, pix_per_em)
 
 			y = y + nint(1.1 * pix_per_em)
 			call draw_str(cv, fg, ttf, "black quartz!", f*lmargin   , y, pix_per_em)
 			call draw_str(cv, fg, ttf, "BLACK QUARTZ!", size(cv,1)/2, y, pix_per_em)
+
+		case ("hi")
+			! Hindi does not have uppercase as far as I know
+			!
+			! Try Notepad++ if you need to edit this
+
+			y = y + nint(1.3 * pix_per_em)
+			call draw_str(cv, fg, ttf, &
+				'ऋषियों को सताने वाले दुष्ट' &
+				//' राक्षसों के राजा रावण ', &
+				f*lmargin   , y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, &
+				'का सर्वनाश करने वाले' &
+				//' विष्णुवतार भगवान ', &
+				f*lmargin   , y, pix_per_em)
+
+			y = y + nint(1.1 * pix_per_em)
+			call draw_str(cv, fg, ttf, &
+				'श्रीराम, अयोध्या के महाराज' &
+				//' दशरथ के बड़े सपुत्र थे।', &
+				f*lmargin   , y, pix_per_em)
 
 		case ("ru")
 			! Would a citrus live in the thickets of the south? Yes, but only a fake one!
@@ -1862,8 +1885,8 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			call draw_str(cv, fg, ttf, "В ЧАЩАХ ЮГА ЖИЛ БЫ", size(cv,1)/2, y, pix_per_em)
 
 			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "цитрус? да, но"   , f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "ЦИТРУС? ДА, НО"   , size(cv,1)/2, y, pix_per_em)
+			call draw_str(cv, fg, ttf, "цитрус? да, но", f*lmargin   , y, pix_per_em)
+			call draw_str(cv, fg, ttf, "ЦИТРУС? ДА, НО", size(cv,1)/2, y, pix_per_em)
 
 			y = y + nint(1.1 * pix_per_em)
 			call draw_str(cv, fg, ttf, "фальшивый экземпляр!", f*lmargin   , y, pix_per_em)
