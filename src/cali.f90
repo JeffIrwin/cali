@@ -1809,13 +1809,12 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe)
 
 	allocate(cv(0,0))
 
-	f = 5
+	f = 1
 	cv = new_canvas(1100*f, 1200*f, bg)
 
-	pix_per_em = 75.d0*f
-	lmargin = 10*f
+	lmargin = 15*f
 
-	y = 0
+	y = 20*f
 	do i = 1, nppe
 		pix_per_em = f * (ppe_min + (ppe_max - ppe_min) * (i - 1) / (nppe - 1))
 
@@ -1851,6 +1850,8 @@ end module cali_m
 !   * advanceWidth from 'hmtx' table done
 ! - waterfall test
 ! - other config args?  json input for app only
+!   * language option, e.g. --en, --de, --fr, --ru, etc. for waterfall and
+!     specimens
 !   * cmd arg for specimen vs markdown render vs waterfall etc.
 !   * img size
 !   * fg, bg colors
