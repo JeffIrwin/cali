@@ -21,9 +21,15 @@ module app_m
 		]
 
 	type args_t
+
 		character(len = :), allocatable :: ttf_file
-		logical :: waterfall = .false.
 		character(len = :), allocatable :: language
+
+		logical :: &
+			waterfall = .false., &
+			version   = .false., &
+			help      = .false.
+
 	end type args_t
 
 contains
@@ -62,9 +68,14 @@ function parse_args() result(args)
 		argv = trim(buffer)
 		!print *, "argv = ", argv
 
-		! TODO: help, version args
+		! TODO: more args:
+		!   - color randomizer seed, relative salt or absolute
+		!   - output filename/dir
 
 		select case (argv)
+		case ("-h", "--help")
+			args%help = .true.
+
 		case ("-l", "--language")
 			! TODO: fn.  helpful error if i > argc
 			i = i + 1
@@ -76,6 +87,9 @@ function parse_args() result(args)
 
 			args%language = trim(buffer)
 			! TODO: check language is in langs
+
+		case ("--version")
+			args%version = .true.
 
 		case ("-w", "--waterfall")
 			args%waterfall = .true.
@@ -95,20 +109,26 @@ function parse_args() result(args)
 
 	end do
 
-	if (ipos < 1) then
+	if (ipos < 1 .and. .not. (args%help .or. args%version)) then
 		write(*,*) ERROR//"ttf file not defined"
 		lerror = .true.
 	end if
 
-	if (lerror) then
+	if (lerror .or. args%help) then
+
 		write(*,*) "Usage:"
 		write(*,*) "	cali <path/to/font.ttf> [-l <lang>] [-w]"
+		write(*,*) "	cali -h | --help"
+		write(*,*) "	cali --version"
 		write(*,*)
 		write(*,*) "Options:"
-		write(*,*) "	-l --language <lang>  language code ISO 639-1"
-		write(*,*) "	-w --waterfall        waterfall specimen"
+		write(*,*) "	-h --help             Show this help"
+		write(*,*) "	-l --language <lang>  Language code ISO 639-1"
+		write(*,*) "	--version             Show version"
+		write(*,*) "	-w --waterfall        Waterfall specimen"
 		write(*,*)
-		call exit(EXIT_FAILURE)
+
+		if (.not. args%help) call exit(EXIT_FAILURE)
 	end if
 
 end function parse_args
@@ -135,6 +155,7 @@ program main
 	write(*,*)
 
 	args = parse_args()
+	if (args%version .or. args%help) call exit(EXIT_SUCCESS)
 
 	if (args%waterfall) then
 		call waterfall(args%ttf_file, 12.d0, 64.d0, 8, args%language)

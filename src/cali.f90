@@ -1818,7 +1818,9 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 	! Pangrams are from https://clagnut.com/blog/2380
 
 	! TODO: refactor to set upper/lower lines per-language, and then do
-	! typesetting unconditionally on array of lines
+	! typesetting unconditionally on array of lines.  May be easier to put
+	! newlines in a single string (instead of array) and do some basic parsing?
+	! UTF complications?
 
 	y = 20*f
 	do i = 1, nppe
@@ -1949,9 +1951,8 @@ end module cali_m
 !   * more advanced kerning using the 'kern' table
 !   * advanceWidth from 'hmtx' table done
 ! - waterfall test
+! - more non-latin tests
 ! - other config args?  json input for app only
-!   * language option, e.g. --en, --de, --fr, --ru, etc. for waterfall and
-!     specimens
 !   * cmd arg for specimen vs markdown render vs waterfall etc.
 !   * img size
 !   * fg, bg colors
