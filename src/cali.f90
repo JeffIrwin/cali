@@ -1788,11 +1788,11 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 
 	!********
 
-	character(len = :), allocatable :: ppm_filename
+	character(len = :), allocatable :: ppm_filename, lines_lo, lines_up
 
 	double precision :: pix_per_em
 
-	integer :: i, lmargin, f, seed, y
+	integer :: i, j, j0, lmargin, f, seed, y, y0
 	integer(kind = 4) :: fg, bg
 	integer(kind = 4), allocatable :: cv(:,:)
 
@@ -1822,115 +1822,104 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 	! newlines in a single string (instead of array) and do some basic parsing?
 	! UTF complications?
 
+	select case (language)
+	case ("de")
+		! Victor chases twelve boxers across the great dam of Sylt
+		lines_lo = "victor jagt zwölf"//LINE_FEED &
+			//"boxkämpfer quer über"//LINE_FEED &
+			//"den großen sylter deich"
+		lines_up = "VICTOR JAGT ZWÖLF"//LINE_FEED &
+			//"BOXKÄMPFER QUER ÜBER"//LINE_FEED &
+			//"DEN GROSSEN SYLTER DEICH"
+
+	case ("el")
+		! protect in general your life from deep psychological wounds
+		lines_lo = "διαφυλάξτε γενικά τη"//LINE_FEED &
+			//"ζωή σας από βαθειά"//LINE_FEED &
+			//"ψυχικά τραύματα"
+		lines_up = "ΔΙΑΦΥΛΆΞΤΕ ΓΕΝΙΚΆ ΤΗ"//LINE_FEED &
+			//"ΖΩΉ ΣΑΣ ΑΠΌ ΒΑΘΕΙΆ"//LINE_FEED &
+			//"ΨΥΧΙΚΆ ΤΡΑΎΜΑΤΑ"
+
+	case ("fr")
+		! See the giant brig which I examine near the wharf
+		lines_lo = "voyez le brick"//LINE_FEED &
+			//"géant que j’examine"//LINE_FEED &
+			//"près du wharf"
+		lines_up = "VOYEZ LE BRICK"//LINE_FEED &
+			//"GÉANT QUE J’EXAMINE"//LINE_FEED &
+			//"PRÈS DU WHARF"
+
+	case ("hi")
+		! Hindi does not have uppercase as far as I know
+		!
+		! Try Notepad++ if you need to edit this
+		lines_lo = &
+			'ऋषियों को सताने वाले दुष्ट' &
+			//' राक्षसों के राजा रावण ' &
+			//LINE_FEED &
+			//'का सर्वनाश करने वाले' &
+			//' विष्णुवतार भगवान ' &
+			//LINE_FEED &
+			//'श्रीराम, अयोध्या के महाराज' &
+			//' दशरथ के बड़े सपुत्र थे।'
+		lines_up = ""
+
+	case ("ru")
+		! Would a citrus live in the thickets of the south? Yes, but only a fake one!
+		lines_lo = "в чащах юга жил бы"//LINE_FEED &
+			//"цитрус? да, но"//LINE_FEED &
+			//"фальшивый экземпляр!"
+		lines_up = "В ЧАЩАХ ЮГА ЖИЛ БЫ"//LINE_FEED &
+			//"ЦИТРУС? ДА, НО"//LINE_FEED &
+			//"ФАЛЬШИВЫЙ ЭКЗЕМПЛЯР!"
+
+	case default  ! ("en")
+		lines_lo = "judge my vow,"//LINE_FEED &
+			//"sphinx of"//LINE_FEED &
+			//"black quartz!"
+		lines_up = "JUDGE MY VOW,"//LINE_FEED &
+			//"SPHINX OF"//LINE_FEED &
+			//"BLACK QUARTZ!"
+
+	end select
+
 	y = 20*f
 	do i = 1, nppe
 		pix_per_em = f * (ppe_min + (ppe_max - ppe_min) * (i - 1) / (nppe - 1))
+		y = y + nint(0.2 * pix_per_em)  ! paragraph break
+		y0 = y
 
-		select case (language)
+		!y = y + nint(1.3 * pix_per_em)
+		!y = 20*f + nint(0.2 * pix_per_em)
 
-		case ("fr")
-			! Voyez le brick géant que j’examine près du wharf
-			!
-			! See the giant brig which I examine near the wharf
-
-			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "voyez le brick", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "VOYEZ LE BRICK", size(cv,1)/2, y, pix_per_em)
-
+		! TODO: make this a draw_lines() fn
+		j = -1
+		y = y0
+		do while (j < len(lines_lo))
 			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "géant que j’examine"    , f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "GÉANT QUE J’EXAMINE"    , size(cv,1)/2, y, pix_per_em)
 
+			j0 = j + 2
+			j = j0 + scan(lines_lo(j0:), LINE_FEED) - 2
+			if (j <= j0) j = len(lines_lo)
+
+			call draw_str(cv, fg, ttf, lines_lo(j0:j), f*lmargin, y, pix_per_em)
+
+		end do
+
+		! TODO: fn ibid
+		j = -1
+		y = y0
+		do while (j < len(lines_up))
 			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "près du wharf", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "PRÈS DU WHARF", size(cv,1)/2, y, pix_per_em)
 
+			j0 = j + 2
+			j = j0 + scan(lines_up(j0:), LINE_FEED) - 2
+			if (j <= j0) j = len(lines_up)
 
-		case ("de")
-			! Victor chases twelve boxers across the great dam of Sylt
+			call draw_str(cv, fg, ttf, lines_up(j0:j), size(cv,1)/2, y, pix_per_em)
 
-			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "victor jagt zwölf", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "VICTOR JAGT ZWÖLF", size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "boxkämpfer quer über"    , f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "BOXKÄMPFER QUER ÜBER"    , size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "den großen sylter deich", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "DEN GROSSEN SYLTER DEICH", size(cv,1)/2, y, pix_per_em)
-
-		case ("el")
-
-			! protect in general your life from deep psychological wounds
-			! διαφυλάξτε γενικά τη ζωή σας από βαθειά ψυχικά τραύματα
-
-			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "διαφυλάξτε γενικά τη", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "ΔΙΑΦΥΛΆΞΤΕ ΓΕΝΙΚΆ ΤΗ", size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "ζωή σας από βαθειά", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "ΖΩΉ ΣΑΣ ΑΠΌ ΒΑΘΕΙΆ", size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "ψυχικά τραύματα", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "ΨΥΧΙΚΆ ΤΡΑΎΜΑΤΑ", size(cv,1)/2, y, pix_per_em)
-
-		case ("hi")
-			! Hindi does not have uppercase as far as I know
-			!
-			! Try Notepad++ if you need to edit this
-
-			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, &
-				'ऋषियों को सताने वाले दुष्ट' &
-				//' राक्षसों के राजा रावण ', &
-				f*lmargin   , y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, &
-				'का सर्वनाश करने वाले' &
-				//' विष्णुवतार भगवान ', &
-				f*lmargin   , y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, &
-				'श्रीराम, अयोध्या के महाराज' &
-				//' दशरथ के बड़े सपुत्र थे।', &
-				f*lmargin   , y, pix_per_em)
-
-		case ("ru")
-			! Would a citrus live in the thickets of the south? Yes, but only a fake one!
-
-			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "в чащах юга жил бы", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "В ЧАЩАХ ЮГА ЖИЛ БЫ", size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "цитрус? да, но", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "ЦИТРУС? ДА, НО", size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "фальшивый экземпляр!", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "ФАЛЬШИВЫЙ ЭКЗЕМПЛЯР!", size(cv,1)/2, y, pix_per_em)
-
-		case default  ! ("en")
-
-			y = y + nint(1.3 * pix_per_em)
-			call draw_str(cv, fg, ttf, "judge my vow,", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "JUDGE MY VOW,", size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "sphinx of"    , f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "SPHINX OF"    , size(cv,1)/2, y, pix_per_em)
-
-			y = y + nint(1.1 * pix_per_em)
-			call draw_str(cv, fg, ttf, "black quartz!", f*lmargin   , y, pix_per_em)
-			call draw_str(cv, fg, ttf, "BLACK QUARTZ!", size(cv,1)/2, y, pix_per_em)
-
-		end select
+		end do
 
 	end do
 
