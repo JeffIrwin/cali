@@ -1817,11 +1817,6 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 
 	! Pangrams are from https://clagnut.com/blog/2380
 
-	! TODO: refactor to set upper/lower lines per-language, and then do
-	! typesetting unconditionally on array of lines.  May be easier to put
-	! newlines in a single string (instead of array) and do some basic parsing?
-	! UTF complications?
-
 	select case (language)
 	case ("de")
 		! Victor chases twelve boxers across the great dam of Sylt
@@ -1865,6 +1860,15 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			//' दशरथ के बड़े सपुत्र थे।'
 		lines_up = ""
 
+	case ("it")
+		! Some news from Pavia makes me yawn
+		lines_lo = "qualche notizia"//LINE_FEED &
+			//"pavese mi"//LINE_FEED &
+			//"fa sbadigliare"
+		lines_up = "QUALCHE NOTIZIA"//LINE_FEED &
+			//"PAVESE MI"//LINE_FEED &
+			//"FA SBADIGLIARE"
+
 	case ("ru")
 		! Would a citrus live in the thickets of the south? Yes, but only a fake one!
 		lines_lo = "в чащах юга жил бы"//LINE_FEED &
@@ -1890,9 +1894,6 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 		y = y + nint(0.2 * pix_per_em)  ! paragraph break
 		y0 = y
 
-		!y = y + nint(1.3 * pix_per_em)
-		!y = 20*f + nint(0.2 * pix_per_em)
-
 		! TODO: make this a draw_lines() fn
 		j = -1
 		y = y0
@@ -1902,6 +1903,11 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			j0 = j + 2
 			j = j0 + scan(lines_up(j0:), LINE_FEED) - 2
 			if (j <= j0) j = len(lines_up)
+
+			! UTF complications? I'm skeptical, I think that scan() could find a
+			! LINE_FEED byte in the middle of a multi-byte utf8 char.  Might be
+			! safer to convert whole str to utf32 first and then scan int array
+			! for LINE_FEED32
 
 			call draw_str(cv, fg, ttf, lines_up(j0:j), size(cv,1)/2, y, pix_per_em)
 
