@@ -1896,20 +1896,6 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 		! TODO: make this a draw_lines() fn
 		j = -1
 		y = y0
-		do while (j < len(lines_lo))
-			y = y + nint(1.1 * pix_per_em)
-
-			j0 = j + 2
-			j = j0 + scan(lines_lo(j0:), LINE_FEED) - 2
-			if (j <= j0) j = len(lines_lo)
-
-			call draw_str(cv, fg, ttf, lines_lo(j0:j), f*lmargin, y, pix_per_em)
-
-		end do
-
-		! TODO: fn ibid
-		j = -1
-		y = y0
 		do while (j < len(lines_up))
 			y = y + nint(1.1 * pix_per_em)
 
@@ -1918,6 +1904,20 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			if (j <= j0) j = len(lines_up)
 
 			call draw_str(cv, fg, ttf, lines_up(j0:j), size(cv,1)/2, y, pix_per_em)
+
+		end do
+
+		! TODO: fn ibid
+		j = -1
+		y = y0
+		do while (j < len(lines_lo))
+			y = y + nint(1.1 * pix_per_em)
+
+			j0 = j + 2
+			j = j0 + scan(lines_lo(j0:), LINE_FEED) - 2
+			if (j <= j0) j = len(lines_lo)
+
+			call draw_str(cv, fg, ttf, lines_lo(j0:j), f*lmargin, y, pix_per_em)
 
 		end do
 
