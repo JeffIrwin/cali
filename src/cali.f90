@@ -26,6 +26,7 @@ module cali_m
 		!Y_DELTA   = int(b'00100000')     ! 2 * X_DELTA
 
 	character, parameter :: &
+			NULL_           = char( 0), &
 			LINE_FEED       = char(10), &
 			ESC             = char(27)
 
@@ -1466,6 +1467,34 @@ end subroutine write_img_diff
 
 subroutine write_img(cv, filename)
 
+	! Write a canvas cv to an image file with a format based on the filename
+	! extension
+
+	integer(kind = 4), intent(in) :: cv(:,:)
+
+	character(len = *), intent(in) :: filename
+
+	select case (extension(filename))
+	case (".ppm", ".PPM")
+		call write_ppm(cv, filename)
+
+	case (".png", ".PNG")
+		!! TODO: make wrapper fn with consistent signature (no null term, no size junk)
+		!call write_png(cv, filename)
+		call write_png(filename//NULL_, cv, size(cv,1), size(cv,2))
+
+	case default
+		write(*,*) ERROR//"invalid image file extension for file """, filename, """"
+		call exit(EXIT_FAILURE)
+
+	end select
+
+end subroutine write_img
+
+!===============================================================================
+
+subroutine write_ppm(cv, filename)
+
 	! Write a canvas cv to a ppm image file
 
 	integer(kind = 4), intent(in) :: cv(:,:)
@@ -1500,7 +1529,7 @@ subroutine write_img(cv, filename)
 	close(iu)
 	write(*,*) 'Finished writing file "', filename, '"'
 
-end subroutine write_img
+end subroutine write_ppm
 
 !===============================================================================
 
@@ -1664,6 +1693,35 @@ end function basename
 
 !===============================================================================
 
+function extension(filename)
+
+	! Include "." and double extensions if present (including whole basename for
+	! dotfiles).  May be empty string
+
+	character(len = *), intent(in)  :: filename
+	character(len = :), allocatable :: extension
+	!********
+	integer :: beg_, end_, i
+
+	beg_ = 1
+	end_ = len(filename)
+
+	!print *, 'len = ', end_
+
+	i = scan(filename, '/\', .true.)
+	if (i /= 0) beg_ = i + 1
+
+	i = scan(filename(beg_:), '.')
+	if (i /= 0) end_ = beg_ + i - 2
+
+	extension = filename(end_ + 1:)
+	print *, 'beg_, end_ = ', beg_, end_
+	print *, 'extension = ', extension
+
+end function extension
+
+!===============================================================================
+
 function rand_dark() result(color)
 
 	integer(kind = 4) :: color
@@ -1768,9 +1826,6 @@ function specimen(ttf_filename) result(cv)
 
 	str = "0123456789"
 	call draw_str(cv, fg4, ttf , str, 200*factor, 10 * line_height, pix_per_em)
-
-	!ppm_filename = "./build/"//basename(ttf_filename)//".ppm"
-	!call write_img(cv, ppm_filename)
 
 end function specimen
 
@@ -1939,9 +1994,6 @@ function waterfall(ttf_filename, ppe_min, ppe_max, nppe, language) result(cv)
 		end do
 
 	end do
-
-	!ppm_filename = "./build/waterfall-"//basename(ttf_filename)//".ppm"
-	!call write_img(cv, ppm_filename)
 
 end function waterfall
 

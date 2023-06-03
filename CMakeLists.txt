@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.24)
 #set(CMAKE_Fortran_COMPILER "gfortran")
 
 set(PROJECT "cali")
-project(${PROJECT} Fortran)
+project(${PROJECT} Fortran CXX)
 
 #=======================================================================
 
@@ -18,7 +18,8 @@ add_compile_options("-fopenmp")
 add_compile_options("-Wno-tabs")
 add_compile_options("-Wno-maybe-uninitialized")
 
-add_compile_options("-Werror")
+## TODO: need to segregate Fortran and CXX options
+#add_compile_options("-Werror")
 
 #add_compile_options("-std=gnu")
 #add_compile_options("-pedantic") # pedantic warns about convert='big_endian'
@@ -32,6 +33,8 @@ add_compile_options("-fbacktrace")
 #=======================================================================
 
 set(SRC_DIR "src")
+set(SUBMODULE_DIR "submodules")
+set(PNG_DIR "${SUBMODULE_DIR}/lodepng")
 
 #********
 
@@ -40,8 +43,21 @@ set(LIB_SRC
 	${SRC_DIR}/cali.f90
 	${SRC_DIR}/utf.f90
 	)
+
+# TODO: add optional guard to compile w/ or w/o lodepng
+list(APPEND LIB_SRC
+	${PNG_DIR}/lodepng.cpp
+	${SRC_DIR}/lodepng_wrapper.cpp
+	)
+
+#message("LIB_SRC = ${LIB_SRC}")
+
 add_library(${LIB} STATIC ${LIB_SRC})
 set(LINK_LIBS "${LIB}")
+
+target_include_directories(${LIB} PUBLIC
+	${PNG_DIR}
+	)
 
 #********
 
