@@ -114,7 +114,11 @@ function parse_args() result(args)
 
 		case ("-l", "--language")
 			call get_next_arg(i, args%language)
-			! TODO: check language is in langs
+			if (.not. any(langs == args%language)) then
+				write(*,*) ERROR//"language """//args%language &
+					//""" not supported or invalid ISO 639-1 language code"
+				lerror = .true.
+			end if
 
 		case ("--version")
 			args%version = .true.
@@ -128,12 +132,15 @@ function parse_args() result(args)
 
 			if (ipos == 1) then
 				args%ttf_file = argv
+
 			else if (ipos == 2) then
 				args%lout_file = .true.
 				args%out_file  = argv
+
 			else
 				write(*,*) ERROR//"unknown argument `"//argv//"`"
 				lerror = .true.
+
 			end if
 
 		end select
@@ -148,7 +155,7 @@ function parse_args() result(args)
 	if (lerror .or. args%help) then
 
 		write(*,*) "Usage:"
-		write(*,*) "	cali <path/to/font.ttf> [-l <lang>] [-w]"
+		write(*,*) "	cali <font.ttf> [<image.ppm>] [-l <lang>] [-w]"
 		write(*,*) "	cali -h | --help"
 		write(*,*) "	cali --version"
 		write(*,*)
@@ -160,6 +167,14 @@ function parse_args() result(args)
 		write(*,*)
 
 		if (.not. args%help) call exit(EXIT_FAILURE)
+	end if
+
+	if (.not. args%lout_file) then
+		if (args%waterfall) then
+			args%out_file = "./build/waterfall-"//basename(args%ttf_file)//".ppm"
+		else
+			args%out_file = "./build/"//basename(args%ttf_file)//".ppm"
+		end if
 	end if
 
 end function parse_args
@@ -177,6 +192,7 @@ program main
 
 	implicit none
 
+	integer(kind = 4), allocatable :: canvas(:,:)
 	type(args_t) :: args
 
 	write(*,*) "cali "// &
@@ -193,13 +209,13 @@ program main
 	write(*,*)
 
 	if (args%waterfall) then
-		call waterfall(args%ttf_file, 12.d0, 64.d0, 8, args%language)
+		canvas = waterfall(args%ttf_file, 12.d0, 64.d0, 8, args%language)
 	else
 		! TODO: lang arg
-		call specimen(args%ttf_file)
+		canvas = specimen(args%ttf_file)
 	end if
 
-	if (args%lout_file) print *, "out_file = ", args%out_file
+	call write_img(canvas, args%out_file)
 
 	write(*,*) FG_BRIGHT_GREEN//"Finished cali"//COLOR_RESET
 	write(*,*)

@@ -1690,21 +1690,21 @@ end function rand_light
 
 !===============================================================================
 
-subroutine specimen(ttf_filename)
+function specimen(ttf_filename) result(cv)
 
 	! Make a specimen for the given ttf file
 
 	character(len = *), intent(in) :: ttf_filename
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	!********
 
-	character(len = :), allocatable :: str, ppm_filename
+	character(len = :), allocatable :: str
 
 	double precision :: pix_per_em
 
 	integer :: line_height, lmargin, factor, seed
 	integer(kind = 4) :: fg, fg2, fg3, fg4, bg, bg2
-	integer(kind = 4), allocatable :: cv(:,:)!, cv2(:,:)
 
 	type(ttf_t)  :: ttf!, ttfi
 
@@ -1769,14 +1769,14 @@ subroutine specimen(ttf_filename)
 	str = "0123456789"
 	call draw_str(cv, fg4, ttf , str, 200*factor, 10 * line_height, pix_per_em)
 
-	ppm_filename = "./build/"//basename(ttf_filename)//".ppm"
-	call write_img(cv, ppm_filename)
+	!ppm_filename = "./build/"//basename(ttf_filename)//".ppm"
+	!call write_img(cv, ppm_filename)
 
-end subroutine specimen
+end function specimen
 
 !===============================================================================
 
-subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
+function waterfall(ttf_filename, ppe_min, ppe_max, nppe, language) result(cv)
 
 	! Make a "waterfall" specimen of the same text in multiple sizes for the
 	! given ttf file.  I guess I got this term from fontdrop.info
@@ -1785,16 +1785,16 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 	double precision, intent(in) :: ppe_min, ppe_max
 	integer, intent(in) :: nppe
 	character(len = *), intent(in) :: language
+	integer(kind = 4), allocatable :: cv(:,:)
 
 	!********
 
-	character(len = :), allocatable :: ppm_filename, lines_lo, lines_up
+	character(len = :), allocatable :: lines_lo, lines_up
 
 	double precision :: pix_per_em
 
 	integer :: i, j, j0, lmargin, f, seed, y, y0
 	integer(kind = 4) :: fg, bg
-	integer(kind = 4), allocatable :: cv(:,:)
 
 	type(ttf_t)  :: ttf
 
@@ -1940,10 +1940,10 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 
 	end do
 
-	ppm_filename = "./build/waterfall-"//basename(ttf_filename)//".ppm"
-	call write_img(cv, ppm_filename)
+	!ppm_filename = "./build/waterfall-"//basename(ttf_filename)//".ppm"
+	!call write_img(cv, ppm_filename)
 
-end subroutine waterfall
+end function waterfall
 
 !===============================================================================
 
@@ -1959,11 +1959,10 @@ end module cali_m
 ! - waterfall test
 ! - more non-latin tests
 ! - other config args?  json input for app only
-!   * cmd arg for specimen vs markdown render vs waterfall etc.
 !   * img size
 !   * fg, bg colors
 !   * font filename
-!   * text filename (or directly as a string)
+!   * text/markdown filename (or directly as a string)
 !   * resolution / font size
 ! - ligatures
 ! - anti-aliasing?  doubtful
