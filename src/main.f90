@@ -37,26 +37,45 @@ contains
 
 !===============================================================================
 
-subroutine get_next_arg(i, argv0, argv)
+subroutine get_next_arg(i, argv)
 	integer, intent(inout) :: i
 	character(len = :), allocatable, intent(out) :: argv
-	character(len = *), intent(in) :: argv0
+	!character(len = *), intent(in) :: argv0
 	!********
+	character(len = :), allocatable, save :: argv0
 	character(len = 1024) :: buffer
-	integer :: io
+	integer, parameter :: STAT_TRUNC = -1
+	integer :: io, argc
+	logical, save :: first = .true.
 
-	!i = 0
-	!argv = ""
-	!io = 0
+	if (first) then
+		first = .false.
+		call get_command_argument(0, buffer)
+		argv0 = trim(buffer)
+	end if
 
 	i = i + 1
-	call get_command_argument(i, buffer, status = io)
-	if (io /= EXIT_SUCCESS) then
-		write(*,*) ERROR//"cannot get cmd arg after """//argv0//""""
+	argc = command_argument_count()
+	if (i > argc) then
+		write(*,*) ERROR//"missing required argument after """//argv0//""""
 		call exit(EXIT_FAILURE)
+	end if
+
+	call get_command_argument(i, buffer, status = io)
+	if (io == STAT_TRUNC) then
+		! Could make buffer allocatable and automatically try resizing
+		write(*,*) ERROR//"command argument too long after """//argv0//""""
+		call exit(EXIT_FAILURE)
+
+	else if (io /= EXIT_SUCCESS) then
+		write(*,*) ERROR//"cannot get command argument after """//argv0//""""
+		call exit(EXIT_FAILURE)
+
 	end if
 	argv = trim(buffer)
 	!print *, "argv = ", argv
+
+	argv0 = argv
 
 end subroutine get_next_arg
 
@@ -68,7 +87,7 @@ function parse_args() result(args)
 
 	!********
 
-	character(len = :), allocatable :: argv, argv0
+	character(len = :), allocatable :: argv
 
 	integer :: i, argc, ipos
 
@@ -80,14 +99,10 @@ function parse_args() result(args)
 	argc = command_argument_count()
 	!print *, "argc = ", argc
 
-	i = -1
+	i = 0
 	ipos = 0
-	call get_next_arg(i, "", argv)
-	argv0 = argv
-
 	do while (i < argc)
-		call get_next_arg(i, argv0, argv)
-		argv0 = argv
+		call get_next_arg(i, argv)
 
 		! TODO: more args:
 		!   - color randomizer seed, relative salt or absolute
@@ -98,9 +113,7 @@ function parse_args() result(args)
 			args%help = .true.
 
 		case ("-l", "--language")
-			call get_next_arg(i, argv0, argv)
-			argv0 = argv
-			args%language = argv
+			call get_next_arg(i, args%language)
 			! TODO: check language is in langs
 
 		case ("--version")
