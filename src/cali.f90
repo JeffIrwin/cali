@@ -1878,6 +1878,17 @@ subroutine waterfall(ttf_filename, ppe_min, ppe_max, nppe, language)
 			//"ЦИТРУС? ДА, НО"//LINE_FEED &
 			//"ФАЛЬШИВЫЙ ЭКЗЕМПЛЯР!"
 
+	case ("zu")
+		! "South Africa belongs to all who live in it, united in our diversity."
+		! This is not a pangram because I couldn't find one.  Sorry if I
+		! butchered this :(
+		lines_lo = "iningizimu afrika ingeyabo"//LINE_FEED &
+			//"bonke abahlala kuyo,"//LINE_FEED &
+			//"sibumbene nakuba singafani"
+		lines_up = "ININGIZIMU AFRIKA INGEYABO"//LINE_FEED &
+			//"BONKE ABAHLALA KUYO,"//LINE_FEED &
+			//"SIBUMBENE NAKUBA SINGAFANI"
+
 	case default  ! ("en")
 		lines_lo = "judge my vow,"//LINE_FEED &
 			//"sphinx of"//LINE_FEED &
