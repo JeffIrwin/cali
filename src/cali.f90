@@ -1059,7 +1059,7 @@ end subroutine draw_str
 
 !===============================================================================
 
-subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
+recursive subroutine draw_glyph(cv, color, ttf, glyph, x0, y0, pix_per_em, t)
 
 	! Draw a glyph translated horizontally by x0 and vertically by y0
 
@@ -1479,6 +1479,8 @@ subroutine write_img(cv, filename)
 		call write_ppm(cv, filename)
 
 	case (".png", ".PNG")
+		! TODO: enable -fpp. check compile macro definitions to see if this is enabled
+
 		!! TODO: make wrapper fn with consistent signature (no null term, no size junk)
 		!call write_png(cv, filename)
 		call write_png(filename//NULL_, cv, size(cv,1), size(cv,2))
@@ -1536,6 +1538,9 @@ end subroutine write_ppm
 function read_img(filename) result(cv)
 
 	! Read a ppm image file
+	!
+	! TODO: read format based on extension, like write_img().  Migrate to png
+	! for tests to avoid large wasteful binary ppm files on git
 
 	character(len = *), intent(in) :: filename
 
