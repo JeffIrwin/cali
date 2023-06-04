@@ -14,11 +14,10 @@ project(${PROJECT} Fortran CXX)
 
 add_compile_options("-Wall")
 add_compile_options("-Wextra")
-add_compile_options("-Wno-maybe-uninitialized")
+add_compile_options("-Werror")
 
 add_compile_options($<$<COMPILE_LANGUAGE:Fortran>:-Wno-tabs>)
-
-add_compile_options("-Werror")
+add_compile_options($<$<COMPILE_LANGUAGE:Fortran>:-Wno-maybe-uninitialized>)
 
 #add_compile_options("-fopenmp")
 add_compile_options($<$<COMPILE_LANGUAGE:Fortran>:-fopenmp>)
