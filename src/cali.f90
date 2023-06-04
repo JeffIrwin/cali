@@ -8,7 +8,7 @@ module cali_m
 	integer, parameter :: &
 		CALI_MAJOR = 0, &
 		CALI_MINOR = 0, &
-		CALI_PATCH = 4
+		CALI_PATCH = 5
 
 	integer, parameter ::  &
 		EXIT_SUCCESS =  0, &
