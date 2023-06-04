@@ -1521,9 +1521,9 @@ subroutine write_ppm(cv, filename)
 
 	do iy = 1, size(cv, 2)
 		do ix = 1, size(cv, 1)
-			write(iu) int(ishft(cv(ix,iy), -3 * 8), 1) ! R
-			write(iu) int(ishft(cv(ix,iy), -2 * 8), 1) ! G
-			write(iu) int(ishft(cv(ix,iy), -1 * 8), 1) ! B
+			write(iu) int(ishft(cv(ix,iy), -0 * 8), 1) ! R
+			write(iu) int(ishft(cv(ix,iy), -1 * 8), 1) ! G
+			write(iu) int(ishft(cv(ix,iy), -2 * 8), 1) ! B
 			! No alpha in ppm
 		end do
 	end do
@@ -1593,10 +1593,10 @@ function read_img(filename) result(cv)
 	allocate(cv(width, height))
 	do iy = 1, size(cv, 2)
 		do ix = 1, size(cv, 1)
-			cv(ix,iy) = ior(int(ishft(read_u8(iu) , 3 * 8), 4), &
-			            ior(int(ishft(read_u8(iu) , 2 * 8), 4), &
+			cv(ix,iy) = ior(int(ishft(read_u8(iu) , 0 * 8), 4), &
 			            ior(int(ishft(read_u8(iu) , 1 * 8), 4), &
-			                int(ishft(int(z'ff',2), 0 * 8), 4))))
+			            ior(int(ishft(read_u8(iu) , 2 * 8), 4), &
+			                int(ishft(int(z'ff',4), 3 * 8), 4))))
 		end do
 	end do
 
@@ -1669,6 +1669,15 @@ function new_color(i8) result(color)
 	else
 		color = int(i8 - huge(i8) - 1, 4)
 	end if
+	!print '(a,z8)', 'color = ', color
+
+	! Reverse endianness
+	color = ior(ishft(iand(ishft(color, -0 * 8), int(z'ff',4)), 3 * 8), &
+		    ior(ishft(iand(ishft(color, -1 * 8), int(z'ff',4)), 2 * 8), &
+		    ior(ishft(iand(ishft(color, -2 * 8), int(z'ff',4)), 1 * 8), &
+		        ishft(iand(ishft(color, -3 * 8), int(z'ff',4)), 0 * 8))))
+
+	!print '(a,z8)', 'color = ', color
 
 end function new_color
 
@@ -1731,10 +1740,10 @@ function rand_dark() result(color)
 
 	integer(kind = 4) :: color
 
-	color = ior(int(ishft(int(rand() * 85), 3 * 8), 4), &
-	        ior(int(ishft(int(rand() * 85), 2 * 8), 4), &
+	color = ior(int(ishft(int(rand() * 85), 0 * 8), 4), &
 	        ior(int(ishft(int(rand() * 85), 1 * 8), 4), &
-	            int(ishft(int(z'ff',2), 0 * 8), 4))))
+	        ior(int(ishft(int(rand() * 85), 2 * 8), 4), &
+	            int(ishft(int(z'ff',4)    , 3 * 8), 4))))
 
 end function rand_dark
 
@@ -1744,10 +1753,10 @@ function rand_light() result(color)
 
 	integer(kind = 4) :: color
 
-	color = ior(int(ishft(int(255 - rand() * 85), 3 * 8), 4), &
-	        ior(int(ishft(int(255 - rand() * 85), 2 * 8), 4), &
+	color = ior(int(ishft(int(255 - rand() * 85), 0 * 8), 4), &
 	        ior(int(ishft(int(255 - rand() * 85), 1 * 8), 4), &
-	            int(ishft(int(z'ff',2), 0 * 8), 4))))
+	        ior(int(ishft(int(255 - rand() * 85), 2 * 8), 4), &
+	            int(ishft(int(z'ff',4)          , 3 * 8), 4))))
 
 end function rand_light
 
@@ -2009,6 +2018,10 @@ end module cali_m
 !===============================================================================
 
 ! TODO:
+! - png export
+!   * mvp done
+!   * add compile guards to build w/o dependencies
+!   * add tests, both low-level 6-pixel png and higher integration testing
 ! - horizontal spacing
 !   * letter-spacing (tracking) style arg: update pet sounds demo
 !   * more advanced kerning using the 'kern' table
@@ -2023,7 +2036,7 @@ end module cali_m
 !   * resolution / font size
 ! - ligatures
 ! - anti-aliasing?  doubtful
-! - png export, OpenGL/SDL bindings?
+! - OpenGL/SDL bindings?
 ! - vector output format, e.g. ps, pdf, or svg?
 ! - other cmap formats?  need examples for testing.  formats 0, 4, and 6 cover
 !   almost all ~500 Windows fonts (except seguiemj.ttf in format 14) and a
