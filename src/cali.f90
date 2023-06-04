@@ -1673,9 +1673,9 @@ function new_color(i8) result(color)
 
 	! Reverse endianness
 	color = ior(ishft(iand(ishft(color, -0 * 8), int(z'ff',4)), 3 * 8), &
-		    ior(ishft(iand(ishft(color, -1 * 8), int(z'ff',4)), 2 * 8), &
-		    ior(ishft(iand(ishft(color, -2 * 8), int(z'ff',4)), 1 * 8), &
-		        ishft(iand(ishft(color, -3 * 8), int(z'ff',4)), 0 * 8))))
+	        ior(ishft(iand(ishft(color, -1 * 8), int(z'ff',4)), 2 * 8), &
+	        ior(ishft(iand(ishft(color, -2 * 8), int(z'ff',4)), 1 * 8), &
+	            ishft(iand(ishft(color, -3 * 8), int(z'ff',4)), 0 * 8))))
 
 	!print '(a,z8)', 'color = ', color
 
