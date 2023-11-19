@@ -1,7 +1,8 @@
 
 #=======================================================================
 
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.16)
+#cmake_minimum_required(VERSION 3.24)
 
 #set(CMAKE_Fortran_COMPILER "gfortran")
 
