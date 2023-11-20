@@ -83,6 +83,8 @@ end subroutine get_next_arg
 
 function parse_args() result(args)
 
+	! This argument parser is based on http://docopt.org/
+
 	type(args_t) :: args
 
 	!********
